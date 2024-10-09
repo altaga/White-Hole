@@ -225,8 +225,96 @@ export default class Tab2 extends Component {
       });
   }
 
-  async bulkTransfer() {
-    console.log('Bulk Transfer');
+  async transfer() {
+    const label =
+      this.state.tokenSelected.index === 0 ? 'transfer' : 'tokenTransfer';
+    let transaction = {};
+    let transactionSavings = {};
+    let savings = 0;
+    if (label === 'transfer') {
+      transaction = {
+        from: this.context.value.wallets.eth.address,
+        to: this.state.toAddress,
+        value: ethers.utils.parseEther(this.state.amount),
+      };
+    } else if (label === 'tokenTransfer') {
+      const tokenInterface = new ethers.utils.Interface(abiERC20);
+      transaction = {
+        from: this.context.value.wallets.eth.address,
+        to: this.state.tokenSelected.address,
+        data: tokenInterface.encodeFunctionData('transfer', [
+          this.state.toAddress,
+          ethers.utils.parseUnits(
+            this.state.amount,
+            this.state.tokenSelected.decimals,
+          ),
+        ]),
+      };
+    }
+    if (label === 'transfer' && this.context.value.savingsFlag) {
+      savings =
+        this.context.value.protocolSelected === 1
+          ? balancedSaving(
+              this.state.amount,
+              this.context.value.usdConversion[this.state.chainSelected.index][
+                this.state.tokenSelected.index
+              ],
+            )
+          : percentageSaving(this.state.amount, this.context.value.percentage);
+      savings = epsilonRound(savings, 18).toString(); // Avoid excessive decimals error
+      transactionSavings = {
+        from: this.context.value.wallets.eth.address,
+        to: this.context.value.walletsSavings.eth.address,
+        value: ethers.utils.parseEther(savings),
+      };
+    } else if (label === 'tokenTransfer' && this.context.value.savingsFlag) {
+      const valueOnETH =
+        (this.state.amount *
+          this.context.value.usdConversion[this.state.chainSelected.index][
+            this.state.tokenSelected.index
+          ]) /
+        this.context.value.usdConversion[this.state.chainSelected.index][0];
+      savings =
+        this.context.value.protocolSelected === 1
+          ? balancedSaving(
+              valueOnETH,
+              this.context.value.usdConversion[
+                this.state.chainSelected.index
+              ][0],
+            )
+          : percentageSaving(valueOnETH, this.context.value.percentage);
+      savings = epsilonRound(savings, 18).toString();
+      transactionSavings = {
+        from: this.context.value.wallets.eth.address,
+        to: this.context.value.walletsSavings.eth.address,
+        value: ethers.utils.parseEther(savings),
+      };
+    }
+    this.context.setValue({
+      isTransactionActive: true,
+      transactionData: {
+        // Wallet Selection
+        walletSelector: 1,
+        // Commands
+        command: label,
+        chainSelected: this.state.chainSelected.index,
+        tokenSelected: this.state.tokenSelected.index,
+        // Transaction
+        transaction,
+        // With Savings
+        withSavings: false,
+        transactionSavings,
+        // Single Display
+        // Display
+        label,
+        to: this.state.toAddress,
+        amount: this.state.amount,
+        tokenSymbol: this.state.tokenSelected.label,
+        // Display Savings
+        savedAmount: savings,
+      },
+    });
+    await this.setStateAsync({loading: false});
   }
 
   // Utils
@@ -481,12 +569,10 @@ export default class Tab2 extends Component {
                       Next Withdraw Date
                     </Text>
                     <Pressable
-                      /**
                       disabled={
                         this.state.loading ||
                         !(this.context.value.savingsDate < Date.now())
                       }
-                      */
                       style={[
                         GlobalStyles.buttonStyle,
                         {width: '50%'},
@@ -497,7 +583,7 @@ export default class Tab2 extends Component {
                       ]}
                       onPress={async () => {
                         await this.setStateAsync({loading: true});
-                        await this.bulkTransfer();
+                        //await this.transfer(); // to be done
                         await this.setStateAsync({loading: false});
                       }}>
                       <Text

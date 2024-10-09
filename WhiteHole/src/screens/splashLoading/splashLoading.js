@@ -1,12 +1,12 @@
 // Basic Imports
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, {Component} from 'react';
-import {Dimensions, Image, View} from 'react-native';
+import React, { Component } from 'react';
+import { Dimensions, Image, View } from 'react-native';
 import EncryptedStorage from 'react-native-encrypted-storage';
 import logoSplash from '../../assets/logoSplash.png';
 import GlobalStyles from '../../styles/styles';
 import ContextModule from '../../utils/contextModule';
-import {getAsyncStorageValue} from '../../utils/utils';
+import { getAsyncStorageValue } from '../../utils/utils';
 
 class SplashLoading extends Component {
   constructor(props) {
@@ -35,8 +35,10 @@ class SplashLoading extends Component {
         // Card wallet
         const walletsCard = await getAsyncStorageValue('walletsCard');
         const balancesCard = await getAsyncStorageValue('balancesCard');
-        // Stripe
-        const balancesTrad = await getAsyncStorageValue('balancesTrad');
+        // Chat
+        const chatGeneral = await getAsyncStorageValue('chatGeneral');
+        const fromChain = await getAsyncStorageValue('fromChain');
+        const toChain = await getAsyncStorageValue('toChain');
         // Shared
         const usdConversion = await getAsyncStorageValue('usdConversion');
         const usdConversionTrad = await getAsyncStorageValue(
@@ -48,7 +50,7 @@ class SplashLoading extends Component {
           balances: balances ?? this.context.value.balances,
           // Savings Wallet
           walletsSavings:
-          walletsSavings ?? this.context.value.walletsSavings,
+            walletsSavings ?? this.context.value.walletsSavings,
           periodSelected: periodSelected ?? this.context.value.periodSelected,
           protocolSelected:
             protocolSelected ?? this.context.value.protocolSelected,
@@ -60,19 +62,23 @@ class SplashLoading extends Component {
           // Card Wallet
           walletsCard: walletsCard ?? this.context.value.walletsCard,
           balancesCard: balancesCard ?? this.context.value.balancesCard,
-          // Stripe
-          balancesTrad: balancesTrad ?? this.context.value.balancesTrad,
+          // Chat 
+          chatGeneral: chatGeneral ?? this.context.value.chatGeneral,
+          fromChain: fromChain ?? this.context.value.fromChain,
+          toChain: toChain ?? this.context.value.toChain,
           // Shared
           usdConversion: usdConversion ?? this.context.value.usdConversion,
           usdConversionTrad:
             usdConversionTrad ?? this.context.value.usdConversionTrad,
         });
-        this.props.navigation.navigate('Main'); // Main
+        this.props.navigation.navigate('Main', { // Chat
+          index: 0,
+        }); // Main
       } else {
         this.props.navigation.navigate('Setup');
       }
     });
-    this.props.navigation.addListener('blur', async () => {});
+    this.props.navigation.addListener('blur', async () => { });
   }
 
   async erase() {
@@ -87,7 +93,7 @@ class SplashLoading extends Component {
 
   render() {
     return (
-      <View style={[GlobalStyles.container, {justifyContent: 'center'}]}>
+      <View style={[GlobalStyles.container, { justifyContent: 'center' }]}>
         <Image
           resizeMode="contain"
           source={logoSplash}

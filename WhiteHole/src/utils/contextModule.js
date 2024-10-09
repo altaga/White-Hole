@@ -1,5 +1,4 @@
 // Basic Imports
-import { Transaction } from '@solana/web3.js';
 import React from 'react';
 import { baseWallets, blockchains } from './constants';
 
@@ -28,7 +27,9 @@ class ContextProvider extends React.Component {
         walletsCard: baseWallets,
         balancesCard: blockchains.map(x => x.tokens.map(() => 0)),
         // Stripe
-        balancesTrad: [0.0, 0.0, 0.0],
+        chatGeneral: [],
+        fromChain: blockchains.map(x => x.wormholeChainId)[1],
+        toChain: blockchains.map(x => x.wormholeChainId)[1],
         //// Shared
         usdConversion: blockchains.map(x => x.tokens.map(() => 0)),
         //usdConversionTrad: blockchain.currencies.map(() => '0.0'),
@@ -39,24 +40,26 @@ class ContextProvider extends React.Component {
           walletSelector: 0,
           // Commands
           command: 'transfer',
+          chainSelected: 0,
+          tokenSelected: 0,
           // Transaction
-          transaction: new Transaction(),
+          transaction: {},
+          // With Savings
+          withSavings: false,
+          transactionSavings: {},
           // Single Display
           label: '',
           to: '',
           amount: 0.0,
           tokenSymbol: blockchains[0].token,
-          // Bulk Display
-          labelBulk: [''],
-          toBulk: [''],
-          amountBulk: [0.0],
-          tokenSymbolBulk: [blockchains[0].token],
+          // Savings Display
+          savedAmount: 0.0,
         },
       },
     };
   }
 
-  setValue = (value, then = () => {}) => {
+  setValue = (value, then = () => { }) => {
     this.setState(
       {
         value: {
@@ -69,10 +72,10 @@ class ContextProvider extends React.Component {
   };
 
   render() {
-    const {children} = this.props;
-    const {value} = this.state;
+    const { children } = this.props;
+    const { value } = this.state;
     // Fill this object with the methods you want to pass down to the context
-    const {setValue} = this;
+    const { setValue } = this;
 
     return (
       <ContextModule.Provider

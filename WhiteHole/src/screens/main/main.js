@@ -1,21 +1,21 @@
-import React, {Component} from 'react';
-import {Pressable, SafeAreaView, Text, View} from 'react-native';
+import React, { Component } from 'react';
+import { Pressable, SafeAreaView, Text, View } from 'react-native';
 import IconIonicons from 'react-native-vector-icons/Ionicons';
 import IconFA5 from 'react-native-vector-icons/FontAwesome5';
 import IconI from 'react-native-vector-icons/Ionicons';
 import IconMI from 'react-native-vector-icons/MaterialIcons';
 import Header from '../../components/header';
-import GlobalStyles, {iconSize, main, mainColor} from '../../styles/styles';
+import GlobalStyles, { iconSize, main, mainColor } from '../../styles/styles';
 import ContextModule from '../../utils/contextModule';
 import Tab1 from './tabs/tab1';
 import Tab2 from './tabs/tab2';
 import Tab3 from './tabs/tab3';
-//import Tab4 from './tabs/tab4';
+import Tab4 from './tabs/tab4';
 
 // Tabs
 
 const BaseStateMain = {
-  tab: 2, // 0
+  tab: 3, // 0
   mainHeight: main,
 };
 
@@ -41,9 +41,7 @@ class Main extends Component {
           {this.state.tab === 0 && <Tab1 navigation={this.props.navigation} />}
           {this.state.tab === 1 && <Tab2 navigation={this.props.navigation} />}
           {this.state.tab === 2 && <Tab3 navigation={this.props.navigation} />}
-          {
-            //this.state.tab === 3 && <Tab4 navigation={this.props.navigation} />
-          }
+          {this.state.tab === 3 && <Tab4 navigation={this.props.navigation} />}
         </SafeAreaView>
         <View style={[GlobalStyles.footerMain]}>
           <Pressable

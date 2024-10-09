@@ -1,7 +1,6 @@
 import React, {Component} from 'react';
 import {Alert, PermissionsAndroid, Platform} from 'react-native';
 import {Camera} from 'react-native-camera-kit';
-import { verifyWallet } from '../../../utils/utils';
 
 class Cam extends Component {
   constructor(props) {
@@ -45,21 +44,33 @@ class Cam extends Component {
       <React.Fragment>
         {this.state.permission && (
           <Camera
-            style={{height: '100%', width: '100%'}}
-            scanBarcode={this.state.scanning}
-            onReadCode={event => {
-              let temp = event.nativeEvent.codeStringValue;
-              if (verifyWallet(temp)) {
-                this.setState(
-                  {
-                    scanning: false,
-                  },
-                  () => this.props.callbackAddress(temp),
-                );
-              }
-            }}
-            showFrame={false}
-          />
+          style={{height: '100%', width: '100%'}}
+          scanBarcode={this.state.scanning}
+          onReadCode={event => {
+            let temp = event.nativeEvent.codeStringValue;
+            if (temp.length === 42 || temp.indexOf('ethereum:') > -1) {
+              this.setState(
+                {
+                  scanning: false,
+                },
+                () => {
+                  if (temp.length === 42) {
+                    this.props.callbackAddress(temp);
+                  } else if (temp.indexOf('ethereum:') > -1) {
+                    if (temp.indexOf('@') > -1) {
+                      this.props.callbackAddress(
+                        temp.substring(9, temp.indexOf('@')),
+                      );
+                    } else {
+                      this.props.callbackAddress(temp.substring(9));
+                    }
+                  }
+                },
+              );
+            }
+          }}
+          showFrame={false}
+        />
         )}
       </React.Fragment>
     );

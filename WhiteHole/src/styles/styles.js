@@ -1,4 +1,4 @@
-import {Dimensions, StatusBar, StyleSheet} from 'react-native';
+import { Dimensions, StatusBar, StyleSheet } from 'react-native';
 
 export const screenHeight = Dimensions.get('screen').height;
 export const windowHeight = Dimensions.get('window').height;
@@ -260,7 +260,7 @@ const GlobalStyles = StyleSheet.create({
   // Networks
   networkShow: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly',
+    justifyContent: 'space-between',
     alignItems: 'center',
     width: '90%',
     height: 60,
@@ -294,6 +294,19 @@ const GlobalStyles = StyleSheet.create({
     height: 50,
     marginBottom: 20,
     marginTop: 20,
+  },
+  inputChat: {
+    borderRadius: 25,
+    borderColor: secondaryColor,
+    borderWidth: 2,
+    marginTop: 20,
+    color: 'black',
+    backgroundColor: 'white',
+    fontSize: 20, 
+    paddingHorizontal: 20, 
+    textAlign: "justify", 
+    width: '66%', 
+    alignSelf: "flex-end", 
   },
   // Modal
   singleModalButton: {

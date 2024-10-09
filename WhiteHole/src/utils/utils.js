@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Decimal from 'decimal.js';
+import { ethers } from 'ethers';
 import ReactNativeBiometrics from 'react-native-biometrics';
 import EncryptedStorage from 'react-native-encrypted-storage';
-import Decimal from 'decimal.js';
-import {PublicKey} from '@solana/web3.js';
+import Crypto from 'react-native-quick-crypto';
 
 export async function getAsyncStorageValue(label) {
   try {
@@ -111,9 +112,8 @@ export function formatDate(date) {
   const year = date.getFullYear();
 
   // Format the date in the desired format
-  const formattedDate = `${monthNames[monthIndex]} / ${
-    day < 10 ? '0' : ''
-  }${day} / ${year}`;
+  const formattedDate = `${monthNames[monthIndex]} / ${day < 10 ? '0' : ''
+    }${day} / ${year}`;
 
   return formattedDate;
 }
@@ -173,9 +173,9 @@ export async function checkBiometrics() {
   const biometrics = new ReactNativeBiometrics();
   return new Promise(async resolve => {
     biometrics
-      .simplePrompt({promptMessage: 'Confirm fingerprint'})
+      .simplePrompt({ promptMessage: 'Confirm fingerprint' })
       .then(async resultObject => {
-        const {success} = resultObject;
+        const { success } = resultObject;
         if (success) {
           resolve(true);
         } else {
@@ -268,8 +268,8 @@ export function percentageSavingToken(number, percentage, usd1, usd2) {
 
 export function verifyWallet(hexString) {
   try {
-    const publicKey = new PublicKey(hexString);
-    return publicKey.toBytes().length === 32;
+    const publicKey = hexString;
+    return publicKey.length === 42;
   } catch (e) {
     return false;
   }
@@ -277,4 +277,62 @@ export function verifyWallet(hexString) {
 
 export function parseToInt(string, decimals) {
   return parseInt(parseFloat(string) * Math.pow(10, decimals));
+}
+
+
+
+export function setTokens(array) {
+  return array.map((item, index) => {
+    return {
+      ...item,
+      index,
+      value: index.toString(),
+      label: item.symbol,
+      key: item.symbol,
+    };
+  });
+}
+
+export function setChains(array) {
+  return array.map((item, index) => {
+    return {
+      ...item,
+      index,
+      value: index.toString(),
+      label: item.network,
+      key: item.iconSymbol,
+    };
+  });
+}
+
+export function decrypt(encryptedText, _secret, myIV) {
+  const secret = ethers.utils.getAddress(_secret)
+  const iv = Buffer.from(myIV, 'base64');  // Convert IV back to a buffer
+
+  // Create the key from the secret
+  const key = Crypto.createHash('sha256').update(secret).digest();
+
+  // Create the decipher object
+  const decipher = Crypto.createDecipheriv('aes-256-cbc', key, iv);
+
+  // Decrypt the ciphertext
+  let decrypted = decipher.update(encryptedText, 'base64', 'utf8');
+  decrypted += decipher.final('utf8');
+
+  return decrypted;
+}
+
+export function removeDuplicatesByKey(arr, key) {
+  const seen = new Set();
+  
+  return arr
+    .slice().reverse() // Reverse the array
+    .filter(item => {
+      if (seen.has(item[key])) {
+        return false; // Skip if the value has already been seen
+      }
+      seen.add(item[key]);
+      return true; // Keep the item if it's the first time the value is encountered
+    })
+    .reverse(); // Reverse it back to original order
 }

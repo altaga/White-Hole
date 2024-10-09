@@ -1,13 +1,11 @@
-import {getAssociatedTokenAddressSync} from '@solana/spl-token';
-import {PublicKey} from '@solana/web3.js';
-import {ethers} from 'ethers';
-import React, {Component} from 'react';
-import {Pressable, RefreshControl, ScrollView, Text, View} from 'react-native';
+import { ethers } from 'ethers';
+import React, { Component } from 'react';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import IconFA from 'react-native-vector-icons/FontAwesome';
 import IconIonicons from 'react-native-vector-icons/Ionicons';
-import GlobalStyles, {mainColor} from '../../../styles/styles';
-import {blockchains, refreshTime} from '../../../utils/constants';
+import { abiBatchTokenBalances } from '../../../contracts/batchTokenBalances';
+import GlobalStyles, { mainColor } from '../../../styles/styles';
+import { blockchains, refreshTime } from '../../../utils/constants';
 import ContextModule from '../../../utils/contextModule';
 import {
   arraySum,
@@ -15,7 +13,6 @@ import {
   getAsyncStorageValue,
   setAsyncStorageValue,
 } from '../../../utils/utils';
-import {abiBatchTokenBalances} from '../../../contracts/batchTokenBalances';
 
 const baseTab1State = {
   refreshing: false,
@@ -222,18 +219,6 @@ class Tab1 extends Component {
                 />
               </Pressable>
               <Text style={GlobalStyles.singleButtonText}>Receive</Text>
-            </View>
-            <View style={{justifyContent: 'center', alignItems: 'center'}}>
-              <Pressable
-                onPress={() =>
-                  this.props.navigation.navigate('TopUp', {
-                    crypto: true,
-                  })
-                }
-                style={GlobalStyles.singleButton}>
-                <IconFA name="dollar" size={iconSize} color={'white'} />
-              </Pressable>
-              <Text style={GlobalStyles.singleButtonText}>Top Up</Text>
             </View>
             {this.state.nfcSupported && (
               <View style={{justifyContent: 'center', alignItems: 'center'}}>

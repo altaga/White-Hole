@@ -1,6 +1,6 @@
-import { GOOGLE_URL_API } from '@env';
-import { ethers } from 'ethers';
-import React, { Component, Fragment } from 'react';
+import {GOOGLE_URL_API} from '@env';
+import {ethers} from 'ethers';
+import React, {Component, Fragment} from 'react';
 import {
   Keyboard,
   NativeEventEmitter,
@@ -15,13 +15,12 @@ import CreditCard from 'react-native-credit-card';
 import LinearGradient from 'react-native-linear-gradient';
 import RNPickerSelect from 'react-native-picker-select';
 import Crypto from 'react-native-quick-crypto';
-import { abiBatchTokenBalances } from '../../../contracts/batchTokenBalances';
-import GlobalStyles, { mainColor } from '../../../styles/styles';
+import {abiBatchTokenBalances} from '../../../contracts/batchTokenBalances';
+import GlobalStyles, {mainColor} from '../../../styles/styles';
 import {
-  blockchain,
   blockchains,
   CloudPublicKeyEncryption,
-  refreshTime
+  refreshTime,
 } from '../../../utils/constants';
 import ContextModule from '../../../utils/contextModule';
 import {
@@ -30,33 +29,24 @@ import {
   getAsyncStorageValue,
   randomNumber,
   setAsyncStorageValue,
+  setChains,
   setEncryptedStorageValue,
+  setTokens,
 } from '../../../utils/utils';
 import ReadCard from '../components/readCard';
-
-function setTokens(array) {
-  return array.map((item, index) => {
-    return {
-      ...item,
-      value: index.toString(),
-      index: index,
-      label: item.name,
-      key: item.symbol,
-    };
-  });
-}
+import {abiERC20} from '../../../contracts/erc20';
 
 const generator = require('creditcard-generator');
 
 const baseTab3State = {
   // Transaction settings
   amount: '',
-  chainSelected: 0,
-  tokenSelected: setTokens(blockchains[0].tokens)[0],
+  chainSelected: setChains(blockchains)[0], // ""
+  tokenSelected: setTokens(blockchains[0].tokens)[0], // ""
   // Card
   cvc: randomNumber(111, 999),
   expiry: '1228',
-  name: 'Sav3ana Card',
+  name: 'WH Card',
   number: generator.GenCC('VISA'),
   imageFront: require('../../../assets/cardAssets/card-front.png'),
   imageBack: require('../../../assets/cardAssets/card-back.png'),
@@ -108,7 +98,58 @@ export default class Tab3 extends Component {
     }
   }
 
-  async addBalance() {}
+  async addBalance() {
+    const label =
+      this.state.tokenSelected.index === 0 ? 'transfer' : 'tokenTransfer';
+    let transaction = {};
+    // Only for Savings
+    let transactionSavings = {};
+    let savings = 0;
+    if (label === 'transfer') {
+      transaction = {
+        from: this.context.value.wallets.eth.address,
+        to: this.context.value.walletsCard.eth.address,
+        value: ethers.utils.parseEther(this.state.amount),
+      };
+    } else if (label === 'tokenTransfer') {
+      const tokenInterface = new ethers.utils.Interface(abiERC20);
+      transaction = {
+        from: this.context.value.wallets.eth.address,
+        to: this.state.tokenSelected.address,
+        data: tokenInterface.encodeFunctionData('transfer', [
+          this.context.value.walletsCard.eth.address,
+          ethers.utils.parseUnits(
+            this.state.amount,
+            this.state.tokenSelected.decimals,
+          ),
+        ]),
+      };
+    }
+    this.context.setValue({
+      isTransactionActive: true,
+      transactionData: {
+        // Wallet Selection
+        walletSelector: 0,
+        // Commands
+        command: label,
+        chainSelected: this.state.chainSelected.index,
+        tokenSelected: this.state.tokenSelected.index,
+        // Transaction
+        transaction,
+        // With Savings
+        withSavings: false,
+        transactionSavings,
+        // Single Display
+        // Display
+        label,
+        to: this.context.value.walletsCard.eth.address,
+        amount: this.state.amount,
+        tokenSymbol: this.state.tokenSelected.label,
+        // Display Savings
+        savedAmount: savings,
+      },
+    });
+  }
 
   createWallet() {
     this.setState({
@@ -148,7 +189,7 @@ export default class Tab3 extends Component {
         });
         this.componentDidMount();
       })
-      .catch((error) => {
+      .catch(error => {
         console.log('error', error);
         this.setState({
           loading: false,
@@ -363,6 +404,30 @@ export default class Tab3 extends Component {
                   value={this.state.amount}
                   onChangeText={value => this.setState({amount: value})}
                 />
+                <Text style={GlobalStyles.formTitleCard}>Select Network</Text>
+                <RNPickerSelect
+                  style={{
+                    inputAndroidContainer: {
+                      textAlign: 'center',
+                    },
+                    inputAndroid: {
+                      textAlign: 'center',
+                      color: 'gray',
+                    },
+                    viewContainer: {
+                      ...GlobalStyles.input,
+                      width: '100%',
+                    },
+                  }}
+                  value={this.state.chainSelected.value}
+                  items={setChains(blockchains)}
+                  onValueChange={network => {
+                    this.setState({
+                      chainSelected: setChains(blockchains)[network],
+                      tokenSelected: setTokens(blockchains[network].tokens)[0],
+                    });
+                  }}
+                />
                 <Text style={GlobalStyles.formTitleCard}>Select Token</Text>
                 <RNPickerSelect
                   style={{
@@ -379,12 +444,14 @@ export default class Tab3 extends Component {
                     },
                   }}
                   value={this.state.tokenSelected.value}
-                  items={setTokens(blockchain.tokens)}
-                  onValueChange={index => {
+                  items={setTokens(
+                    blockchains[this.state.chainSelected.value].tokens,
+                  )}
+                  onValueChange={token => {
                     this.setState({
-                      tokenSelected: setTokens(blockchain.tokens)[
-                        parseInt(index)
-                      ],
+                      tokenSelected: setTokens(
+                        blockchains[this.state.chainSelected.value].tokens,
+                      )[token],
                     });
                   }}
                 />
@@ -457,7 +524,7 @@ export default class Tab3 extends Component {
                                 : this.context.value.balancesCard[i][j] < 0.001
                                 ? '<0.01'
                                 : epsilonRound(
-                                    this.context.value.balancesCard[i][j],  
+                                    this.context.value.balancesCard[i][j],
                                     2,
                                   )}{' '}
                               {token.symbol}

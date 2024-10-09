@@ -1,17 +1,14 @@
-import {Image} from 'react-native';
+import { Image } from 'react-native';
 // Blockchain
-import ETH from '../assets/logos/eth.png';
-import AVAX from '../assets/logos/avax.png';
 import ARB from '../assets/logos/arb.png';
+import AVAX from '../assets/logos/avax.png';
+import ETH from '../assets/logos/eth.png';
+import EURC from '../assets/logos/eurc.png';
 import POL from '../assets/logos/matic.png';
 import USDC from '../assets/logos/usdc.png';
-import EURC from '../assets/logos/eurc.png';
 import USDT from '../assets/logos/usdt.png';
 import WETH from '../assets/logos/weth.png';
 // TradFi
-import USD from '../assets/logos/usd.png';
-import EUR from '../assets/logos/eur.png';
-import MXN from '../assets/logos/mxn.png';
 
 const w = 50;
 const h = 50;
@@ -38,15 +35,17 @@ export const baseWallets = {
   },
 };
 
+export const USDCicon = <Image source={USDC} style={{ width: 30, height: 30, borderRadius: 10 }} />
+
 export const iconsBlockchain = {
-  eth: <Image source={ETH} style={{width: w, height: h, borderRadius: 10}} />,
-  arb: <Image source={ARB} style={{width: w, height: h, borderRadius: 10}} />,
-  pol: <Image source={POL} style={{width: w, height: h, borderRadius: 10}} />,
-  avax: <Image source={AVAX} style={{width: w, height: h, borderRadius: 10}} />,
-  usdc: <Image source={USDC} style={{width: w, height: h, borderRadius: 10}} />,
-  eurc: <Image source={EURC} style={{width: w, height: h, borderRadius: 10}} />,
-  usdt: <Image source={USDT} style={{width: w, height: h, borderRadius: 10}} />,
-  weth: <Image source={WETH} style={{width: w, height: h, borderRadius: 10}} />,
+  eth: <Image source={ETH} style={{ width: w, height: h, borderRadius: 10 }} />,
+  arb: <Image source={ARB} style={{ width: w, height: h, borderRadius: 10 }} />,
+  pol: <Image source={POL} style={{ width: w, height: h, borderRadius: 10 }} />,
+  avax: <Image source={AVAX} style={{ width: w, height: h, borderRadius: 10 }} />,
+  usdc: <Image source={USDC} style={{ width: w, height: h, borderRadius: 10 }} />,
+  eurc: <Image source={EURC} style={{ width: w, height: h, borderRadius: 10 }} />,
+  usdt: <Image source={USDT} style={{ width: w, height: h, borderRadius: 10 }} />,
+  weth: <Image source={WETH} style={{ width: w, height: h, borderRadius: 10 }} />,
 };
 
 export const blockchains = [
@@ -59,9 +58,13 @@ export const blockchains = [
     rpc: 'https://ethereum-rpc.publicnode.com/',
     iconSymbol: 'eth',
     decimals: 18,
-    wormholeAddress: '0x3ee18B2214AFF97000D974cf647E7C347E8fa585',
     wormholeChainId: 2,
     batchBalancesAddress: '0x0d29EBC0d84AF212762081e6c3f5993180f7C7cF',
+    wormholeRelayer: '0x27428DD2d3DD32A4D7f7C497eAaa23130d894911',
+    circleRelayer: '0x4cb69FaE7e7Af841e44E1A1c30Af640739378bb2',
+    USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    crossChainChat :"0x4C88d060906FAdb77740253f3dcDf3336799Ad00",
+    color: "#627EEA",
     tokens: [
       {
         name: 'Ethereum',
@@ -114,10 +117,13 @@ export const blockchains = [
     rpc: 'https://avalanche-c-chain-rpc.publicnode.com/',
     iconSymbol: 'avax',
     decimals: 18,
-    safeAccountCreation: '0xC22834581EbC8527d974F8a1c97E1bEA4EF910BC',
-    wormholeAddress: '0x0b2402144Bb366A632D14B83F244D2e0e21bD39c',
     wormholeChainId: 6,
     batchBalancesAddress: '0xc83bc103229484f40588b5CDE47CbA2A4c312033',
+    wormholeRelayer: "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911",
+    circleRelayer: "0x4cb69FaE7e7Af841e44E1A1c30Af640739378bb2",
+    USDC: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+    crossChainChat :"0x4C88d060906FAdb77740253f3dcDf3336799Ad00",
+    color: "#E84142",
     tokens: [
       {
         name: 'Avalanche',
@@ -170,10 +176,13 @@ export const blockchains = [
     rpc: 'https://polygon-bor-rpc.publicnode.com/',
     iconSymbol: 'matic',
     decimals: 18,
-    safeAccountCreation: '0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2',
-    wormholeAddress: '0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE',
     wormholeChainId: 5,
     batchBalancesAddress: '0xc83bc103229484f40588b5CDE47CbA2A4c312033',
+    wormholeRelayer: "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911",
+    circleRelayer: "0x4cb69FaE7e7Af841e44E1A1c30Af640739378bb2",
+    USDC: "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+    crossChainChat :"0x4C88d060906FAdb77740253f3dcDf3336799Ad00",
+    color: "#8247E5",
     tokens: [
       {
         name: 'Polygon',
@@ -218,10 +227,13 @@ export const blockchains = [
     rpc: 'https://arbitrum-one-rpc.publicnode.com/',
     iconSymbol: 'eth',
     decimals: 18,
-    safeAccountCreation: '0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2',
-    wormholeAddress: '0x0b2402144Bb366A632D14B83F244D2e0e21bD39c',
     wormholeChainId: 23,
     batchBalancesAddress: '0xd9842bc03662E5d8cAafF9aA91fAF4e43cab816C',
+    wormholeRelayer: "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911",
+    circleRelayer: "0x4cb69FaE7e7Af841e44E1A1c30Af640739378bb2",
+    USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+    crossChainChat :"0x4C88d060906FAdb77740253f3dcDf3336799Ad00",
+    color: "#28A0F0",
     tokens: [
       {
         name: 'Ethereum (ARB)',

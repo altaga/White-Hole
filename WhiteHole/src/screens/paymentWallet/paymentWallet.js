@@ -1,8 +1,6 @@
-import { GOOGLE_URL_API, SOLANA_RPC } from '@env';
-import { getAssociatedTokenAddressSync } from '@solana/spl-token';
-import { Connection, PublicKey } from '@solana/web3.js';
-import { ethers } from 'ethers';
-import React, { Component, Fragment } from 'react';
+import {GOOGLE_URL_API} from '@env';
+import {ethers} from 'ethers';
+import React, {Component, Fragment} from 'react';
 import {
   Dimensions,
   Image,
@@ -19,32 +17,28 @@ import QRCode from 'react-native-qrcode-svg';
 import Crypto from 'react-native-quick-crypto';
 import VirtualKeyboard from 'react-native-virtual-keyboard';
 import checkMark from '../../assets/checkMark.png';
-import { logo } from '../../assets/logo';
+import {logo} from '../../assets/logo';
 import Header from '../../components/header';
 import GlobalStyles, {
   mainColor,
   secondaryColor,
-  tertiaryColor
+  tertiaryColor,
 } from '../../styles/styles';
 import {
   CloudPublicKeyEncryption,
   basePublicKey,
-  blockchain
+  blockchains,
 } from '../../utils/constants';
 import ContextModule from '../../utils/contextModule';
-import {
-  deleteLeadingZeros,
-  epsilonRound,
-  findIndexByProperty,
-  formatInputText
-} from '../../utils/utils';
+import {deleteLeadingZeros, formatInputText} from '../../utils/utils';
 import ReadCard from './components/readCard';
+import {abiBatchTokenBalances} from '../../contracts/batchTokenBalances';
 
 const BaseStatePaymentWallet = {
   // Base
   publicKeyCard: basePublicKey,
-  balances: blockchain.tokens.map(() => 0),
-  activeTokens: blockchain.tokens.map(() => false),
+  balances: blockchains.map(x => x.tokens.map(() => 0)),
+  activeTokens: blockchains.map(x => x.tokens.map(() => false)),
   stage: 0, // 0
   amount: '0.00', // "0.00"
   cardInfo: null,
@@ -53,9 +47,9 @@ const BaseStatePaymentWallet = {
   explorerURL: '',
   transactionDisplay: {
     amount: '0.00',
-    name: blockchain.token,
-    tokenAddress: blockchain.tokens[0].address,
-    icon: blockchain.tokens[0].icon,
+    name: blockchains[0].tokens[0].symbol,
+    tokenAddress: blockchains[0].tokens[0].address,
+    icon: blockchains[0].tokens[0].icon,
   },
   // QR print
   saveData: '',
@@ -65,7 +59,10 @@ class PaymentWallet extends Component {
   constructor(props) {
     super(props);
     this.state = BaseStatePaymentWallet;
-    this.provider = new Connection(SOLANA_RPC, 'confirmed');
+    this.provider = blockchains.map(
+      x => new ethers.providers.JsonRpcProvider(x.rpc),
+    );
+    this.controller = new AbortController();
     this.svg = null;
   }
 
@@ -128,66 +125,53 @@ class PaymentWallet extends Component {
     return encrypted.toString('base64');
   }
 
-  async processPayment(tx) {
+  async processPayment() {
     await this.setStateAsync({
-      explorerURL: `${blockchain.blockExplorer}tx/${tx}?cluster=${blockchain.cluster}`,
+      explorerURL: `${
+        blockchains[this.context.value.transactionData.chainSelected]
+          .blockExplorer
+      }tx/${result.result}`,
       status: 'Confirmed',
       loading: false,
     });
   }
 
-  async payFromCard(token) {
-    let index = findIndexByProperty(
-      blockchain.tokens,
-      'address',
-      token.address,
-    );
-    if (index === -1) {
-      throw new Error('Token not found');
-    }
-    const amountCrypto = epsilonRound(
-      parseFloat(deleteLeadingZeros(formatInputText(this.state.amount))) /
-        this.context.value.usdConversion[index],
-      blockchain.tokens[index].decimals,
-    );
-    return new Promise(async (resolve, reject) => {
-      const myHeaders = new Headers();
-      myHeaders.append('Content-Type', 'application/json');
-      const raw = JSON.stringify({
-        data: this.encryptCardData(
-          `${this.state.cardInfo.card}${this.state.cardInfo.exp}`,
-        ),
-        toAddress: this.context.value.publicKey,
-        amount: epsilonRound(amountCrypto, blockchain.tokens[index].decimals),
-        decimals: blockchain.tokens[index].decimals,
-        tokenAddress: blockchain.tokens[index].address,
-        concept:"Payment",
-      });
-      await this.setStateAsync({
-        transactionDisplay: {
-          amount: epsilonRound(amountCrypto, blockchain.tokens[index].decimals),
-          name: blockchain.tokens[index].symbol,
-          tokenAddress: blockchain.tokens[index].address,
-          icon: blockchain.tokens[index].icon,
-        },
-      });
-      const requestOptions = {
-        method: 'POST',
-        headers: myHeaders,
-        body: raw,
-        redirect: 'follow',
-      };
-      fetch(`${GOOGLE_URL_API}/cardTransaction`, requestOptions)
-        .then(response => response.text())
-        .then(result => {
-          if (result === 'Bad Request') {
-            reject('Bad Request');
-          } else {
-            resolve(result);
-          }
-        })
-        .catch(error => reject(error));
+  async payFromCard(i, j) {
+    const myHeaders = new Headers();
+    myHeaders.append('Content-Type', 'application/json');
+    const raw = JSON.stringify({
+      user: this.encryptCardData(
+        `${this.state.cardInfo.card}${this.state.cardInfo.exp}`,
+      ),
+      card: true,
+      command: j === 0 ? 'transfer' : 'tokenTransfer',
+      chain: i,
+      token: j,
+      amount: (
+        this.state.amount / this.context.value.usdConversion[i][j]
+      ).toFixed(blockchains[i].tokens[j].decimals),
+      destinationAddress: this.context.value.wallets.eth.address,
     });
+    console.log(raw);
+    const requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: raw,
+      redirect: 'follow',
+    };
+    fetch(`${GOOGLE_URL_API}/createTransfers`, requestOptions)
+      .then(response => response.json())
+      .then(async result => {
+        console.log(result);
+        if (result.error === null) {
+          await this.setStateAsync({
+            status: 'Confirmed',
+            loading: false,
+            explorerURL: `${blockchains[i].blockExplorer}tx/${result.result}`,
+          });
+        }
+      })
+      .catch(error => console.error(error));
   }
 
   async getAddressFromCard() {
@@ -206,12 +190,14 @@ class PaymentWallet extends Component {
         redirect: 'follow',
       };
       fetch(`${GOOGLE_URL_API}/getCard`, requestOptions)
-        .then(response => response.text())
-        .then(result => {
-          if (result === 'Bad Request') {
-            reject();
+        .then(response => response.json())
+        .then(res => {
+          console.log(res);
+          if (res.error === null) {
+            resolve(res.result);
           } else {
-            resolve(result);
+            console.log(res.error);
+            reject(res.error);
           }
         })
         .catch(error => reject(error));
@@ -219,43 +205,55 @@ class PaymentWallet extends Component {
   }
 
   async getBalances() {
-    const publicKey = new PublicKey(this.state.publicKeyCard);
-    let tokens = [...blockchain.tokens];
-    tokens.shift();
-    const tokenAccounts = tokens.map(token =>
-      getAssociatedTokenAddressSync(
-        new PublicKey(token.address),
-        publicKey,
-        true,
+    const publicKey = this.state.publicKeyCard;
+    const tokensArrays = blockchains
+      .map(x =>
+        x.tokens.filter(
+          token =>
+            token.address !== '0x0000000000000000000000000000000000000000',
+        ),
+      )
+      .map(x => x.map(y => y.address));
+    const batchBalancesContracts = blockchains.map(
+      (x, i) =>
+        new ethers.Contract(
+          x.batchBalancesAddress,
+          abiBatchTokenBalances,
+          this.provider[i],
+        ),
+    );
+    const nativeBalances = await Promise.all(
+      this.provider.map(
+        x => x.getBalance(publicKey) ?? ethers.BigNumber.from(0),
       ),
     );
-    const balanceSol = await this.provider.getBalance(publicKey);
-    const balanceTokens = await Promise.all(
-      tokenAccounts.map(async account => {
-        try {
-          const balance = await this.provider.getTokenAccountBalance(account);
-          return balance;
-        } catch (error) {
-          return {value: {amount: 0}};
-        }
+    const tokenBalances = await Promise.all(
+      batchBalancesContracts.map(
+        (x, i) =>
+          x.batchBalanceOf(publicKey, tokensArrays[i]) ??
+          ethers.BigNumber.from(0),
+      ),
+    );
+    let balancesMerge = [];
+    nativeBalances.forEach((x, i) =>
+      balancesMerge.push([x, ...tokenBalances[i]]),
+    );
+    const balances = blockchains.map((x, i) =>
+      x.tokens.map((y, j) => {
+        return ethers.utils.formatUnits(balancesMerge[i][j], y.decimals);
       }),
     );
-    const balancesTemp = [
-      balanceSol,
-      ...balanceTokens.map(balance => balance.value.amount),
-    ];
-    const balances = blockchain.tokens.map((token, index) =>
-      ethers.utils.formatUnits(balancesTemp[index], token.decimals),
-    );
-    const activeTokens = balances.map(
-      (tokenBalance, index) =>
-        tokenBalance >=
-        parseFloat(deleteLeadingZeros(formatInputText(this.state.amount))) /
-          this.context.value.usdConversion[index],
+    console.log(balances);
+    const activeTokens = balances.map((tokens, i) =>
+      tokens.map(
+        (balance, j) =>
+          balance >
+          parseFloat(deleteLeadingZeros(formatInputText(this.state.amount))) /
+            this.context.value.usdConversion[i][j],
+      ),
     );
     await this.setStateAsync({balances, activeTokens, stage: 2});
   }
-
   // Utils
   async setStateAsync(value) {
     return new Promise(resolve => {
@@ -341,9 +339,11 @@ class PaymentWallet extends Component {
                       await this.setStateAsync({cardInfo});
                       try {
                         const publicKeyCard = await this.getAddressFromCard();
+                        console.log(publicKeyCard);
                         await this.setStateAsync({publicKeyCard});
                         await this.getBalances();
                       } catch (error) {
+                        console.log(error);
                         this.setState({stage: 0});
                       }
                     }
@@ -362,42 +362,56 @@ class PaymentWallet extends Component {
                   Select Payment Token
                 </Text>
                 <ScrollView>
-                  {blockchain.tokens
-                    .filter((_, index) => this.state.activeTokens[index])
-                    .map((token, index, array) => (
-                      <View
-                        key={index}
-                        style={{
-                          paddingBottom: array.length === index + 1 ? 0 : 20,
-                          marginBottom: 20,
-                        }}>
-                        <Pressable
-                          disabled={this.state.loading}
-                          style={[
-                            GlobalStyles.buttonStyle,
-                            this.state.loading ? {opacity: 0.5} : {},
-                          ]}
-                          onPress={async () => {
-                            try {
-                              await this.setStateAsync({
-                                status: 'Processing...',
-                                stage: 3,
-                                explorerURL: '',
-                                loading: true,
-                              });
-                              const tx = await this.payFromCard(token);
-                              this.processPayment(tx);
-                            } catch (error) {
-                              console.log(error);
-                            }
-                            await this.setStateAsync({loading: false});
+                  {blockchains.map((chain, i, array1) =>
+                    chain.tokens.map((token, j, array2) =>
+                      this.state.activeTokens[i][j] ? (
+                        <View
+                          key={`${chain.name}-${i}-${j}`}
+                          style={{
+                            paddingBottom:
+                              array1.length === i + 1 && array2.length === j + 1
+                                ? 0
+                                : 20,
+                            marginBottom: 20,
                           }}>
-                          <Text style={GlobalStyles.buttonText}>
-                            Pay with {token.symbol}
-                          </Text>
-                        </Pressable>
-                      </View>
-                    ))}
+                          <Pressable
+                            disabled={this.state.loading}
+                            style={[
+                              GlobalStyles.buttonStyle,
+                              this.state.loading ? {opacity: 0.5} : {},
+                            ]}
+                            onPress={async () => {
+                              try {
+                                await this.setStateAsync({
+                                  transactionDisplay: {
+                                    amount: (
+                                      this.state.amount /
+                                      this.context.value.usdConversion[i][j]
+                                    ).toFixed(6),
+                                    name: blockchains[i].tokens[j].symbol,
+                                    icon: blockchains[i].tokens[j].icon,
+                                  },
+                                  status: 'Processing...',
+                                  stage: 3,
+                                  explorerURL: '',
+                                  loading: true,
+                                });
+                                await this.payFromCard(i, j);
+                              } catch (error) {
+                                console.log(error);
+                                await this.setStateAsync({loading: false});
+                              }
+                            }}>
+                            <Text style={GlobalStyles.buttonText}>
+                              Pay with {token.symbol}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Fragment key={`${chain.name}-${i}-${j}`} />
+                      ),
+                    ),
+                  )}
                 </ScrollView>
               </React.Fragment>
             )}

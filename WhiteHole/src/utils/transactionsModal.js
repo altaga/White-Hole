@@ -1,6 +1,4 @@
-import {SOLANA_RPC} from '@env';
-import {Connection, Keypair, PublicKey} from '@solana/web3.js';
-import {utils} from 'ethers';
+import {ethers} from 'ethers';
 import React, {Component, Fragment} from 'react';
 import {
   Dimensions,
@@ -9,20 +7,16 @@ import {
   Modal,
   NativeEventEmitter,
   Pressable,
-  ScrollView,
   Text,
   View,
 } from 'react-native';
 import checkMark from '../assets/checkMark.png';
 import GlobalStyles, {mainColor, secondaryColor} from '../styles/styles';
-import {blockchain} from './constants';
+import {blockchains, CloudPublicKeyEncryption} from './constants';
 import ContextModule from './contextModule';
-import {
-  epsilonRound,
-  findIndexByProperty,
-  getEncryptedStorageValue,
-  verifyWallet,
-} from './utils';
+import {epsilonRound, getEncryptedStorageValue, verifyWallet} from './utils';
+import Crypto from 'react-native-quick-crypto';
+import {GOOGLE_URL_API} from '@env';
 
 const baseTransactionsModalState = {
   stage: 0, // 0
@@ -35,17 +29,14 @@ class TransactionsModal extends Component {
   constructor(props) {
     super(props);
     this.state = baseTransactionsModalState;
-    this.provider = new Connection(SOLANA_RPC, 'confirmed');
+    this.provider = blockchains.map(
+      x => new ethers.providers.JsonRpcProvider(x.rpc),
+    );
+    this.controller = new AbortController();
     this.EventEmitter = new NativeEventEmitter();
   }
 
   static contextType = ContextModule;
-
-  async componentDidUpdate(prevProps) {
-    if (prevProps.signer !== this.props.signer) {
-      console.log('Signer Ready on TransactionsModal');
-    }
-  }
 
   async setStateAsync(value) {
     return new Promise(resolve => {
@@ -59,53 +50,113 @@ class TransactionsModal extends Component {
   }
 
   async checkTransaction() {
-    let publicKey;
-    if (this.context.value.transactionData.walletSelector === 0) {
-      publicKey = this.context.value.publicKey;
+    let gas = await this.provider[
+      this.context.value.transactionData.chainSelected
+    ].estimateGas(this.context.value.transactionData.transaction);
+    let gasSavings = ethers.BigNumber.from(0);
+    if (this.context.value.savingsFlag) {
+      gasSavings = await this.provider[
+        this.context.value.transactionData.chainSelected
+      ].estimateGas(this.context.value.transactionData.transactionSavings);
     }
-    if (this.context.value.transactionData.walletSelector === 1) {
-      publicKey = this.context.value.publicKeySavings;
-    }
-    console.log(publicKey);
-    const transaction = this.context.value.transactionData.transaction;
-    const recentBlockhash = (await this.provider.getLatestBlockhash())
-      .blockhash;
-    transaction.recentBlockhash = recentBlockhash;
-    transaction.feePayer = new PublicKey(publicKey);
-    // next
-    const gasFee = await transaction.getEstimatedFee(this.provider);
-    this.setState({
-      gas: utils.formatUnits(gasFee.toString(), blockchain.decimals),
+    const gasPrice = await this.provider[
+      this.context.value.transactionData.chainSelected
+    ].getGasPrice();
+    console.log(ethers.utils.formatEther(gas.add(gasSavings)));
+    await this.setStateAsync({
       loading: false,
+      gas: ethers.utils.formatEther(gas.add(gasSavings).mul(gasPrice)),
     });
   }
 
   async processTransaction() {
-    let wallet;
+    let user = '';
     if (this.context.value.transactionData.walletSelector === 0) {
-      let privateKey = await getEncryptedStorageValue('privateKey');
-      wallet = Keypair.fromSecretKey(Uint8Array.from(privateKey.split(',')));
+      user = await getEncryptedStorageValue('user');
     }
     if (this.context.value.transactionData.walletSelector === 1) {
-      let privateKey = await getEncryptedStorageValue('privateKeySavings');
-      wallet = Keypair.fromSecretKey(Uint8Array.from(privateKey.split(',')));
+      user = await getEncryptedStorageValue('userSavings');
     }
-    const recentBlockhash = (await this.provider.getLatestBlockhash())
-      .blockhash;
-    const transaction = this.context.value.transactionData.transaction;
-    transaction.recentBlockhash = recentBlockhash;
-    transaction.feePayer = wallet.publicKey;
-    transaction.sign(wallet);
-    const txnSignature = await this.provider.sendRawTransaction(
-      transaction.serialize(),
-      {
-        maxRetries: 5,
-      },
-    );
-    this.setState({
-      explorerURL: `${blockchain.blockExplorer}tx/${txnSignature}?cluster=${blockchain.cluster}`,
-      loading: false,
+    if (
+      this.context.value.transactionData.walletSelector === 0 &&
+      this.context.value.transactionData.withSavings
+    ) {
+      const myHeaders = new Headers();
+      myHeaders.append('Content-Type', 'application/json');
+      const raw = JSON.stringify({
+        user: this.encryptData(user),
+        command: 'transfer',
+        chain: this.context.value.transactionData.chainSelected,
+        token: 0,
+        amount: this.context.value.transactionData.savedAmount,
+        destinationAddress: this.context.value.walletsSavings.eth.address,
+      });
+      const requestOptions = {
+        method: 'POST',
+        headers: myHeaders,
+        body: raw,
+        redirect: 'follow',
+      };
+      fetch(`${GOOGLE_URL_API}/createTransfers`, requestOptions)
+        .then(response => response.json())
+        .then(async result => console.log(result))
+        .catch(error => console.error(error));
+    }
+    const myHeaders = new Headers();
+    myHeaders.append('Content-Type', 'application/json');
+    const raw = JSON.stringify({
+      user: this.encryptData(user),
+      command: this.context.value.transactionData.command,
+      chain: this.context.value.transactionData.chainSelected,
+      token: this.context.value.transactionData.tokenSelected,
+      amount: this.context.value.transactionData.amount,
+      destinationAddress: this.context.value.transactionData.to,
     });
+    console.log(raw);
+    const requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: raw,
+      redirect: 'follow',
+    };
+    fetch(`${GOOGLE_URL_API}/createTransfers`, requestOptions)
+      .then(response => response.json())
+      .then(async result => {
+        console.log(result);
+        if (result.error === null) {
+          await this.setStateAsync({
+            loading: false,
+            explorerURL: `${
+              blockchains[this.context.value.transactionData.chainSelected]
+                .blockExplorer
+            }tx/${result.result}`,
+          });
+        }
+      })
+      .catch(error => console.error(error));
+  }
+
+  // Utils
+
+  async setStateAsync(value) {
+    return new Promise(resolve => {
+      this.setState(
+        {
+          ...value,
+        },
+        () => resolve(),
+      );
+    });
+  }
+
+  encryptData(data) {
+    const encrypted = Crypto.publicEncrypt(
+      {
+        key: CloudPublicKeyEncryption,
+      },
+      Buffer.from(data, 'utf8'),
+    );
+    return encrypted.toString('base64');
   }
 
   render() {
@@ -182,11 +233,9 @@ class TransactionsModal extends Component {
                     width: '100%',
                     marginBottom: 10,
                   }}>
-                  {verifyWallet(this.context.value.transactionData.to)
-                    ? this.context.value.transactionData.to.substring(0, 21) +
-                      '\n' +
-                      this.context.value.transactionData.to.substring(21)
-                    : this.context.value.transactionData.to}
+                  {this.context.value.transactionData.to.substring(0, 21) +
+                    '\n' +
+                    this.context.value.transactionData.to.substring(21)}
                 </Text>
                 <Text
                   style={{
@@ -212,12 +261,8 @@ class TransactionsModal extends Component {
                   {epsilonRound(
                     this.context.value.transactionData.amount *
                       this.context.value.usdConversion[
-                        findIndexByProperty(
-                          blockchain.tokens,
-                          'symbol',
-                          this.context.value.transactionData.tokenSymbol,
-                        )
-                      ],
+                        this.context.value.transactionData.chainSelected
+                      ][this.context.value.transactionData.tokenSelected],
                     6,
                   )}
                   {' USD )'}
@@ -245,10 +290,18 @@ class TransactionsModal extends Component {
                     'Calculating...'
                   ) : (
                     <Fragment>
-                      {epsilonRound(this.state.gas, 8)} {blockchain.token}
+                      {epsilonRound(this.state.gas, 8)}{' '}
+                      {
+                        blockchains[
+                          this.context.value.transactionData.chainSelected
+                        ].token
+                      }
                       {'\n ( $'}
                       {epsilonRound(
-                        this.state.gas * this.context.value.usdConversion[0],
+                        this.state.gas *
+                          this.context.value.usdConversion[
+                            this.context.value.transactionData.chainSelected
+                          ][this.context.value.transactionData.tokenSelected],
                         6,
                       )}
                       {' USD )'}
@@ -256,9 +309,8 @@ class TransactionsModal extends Component {
                   )}
                 </Text>
 
-                {this.context.value.savingsFlag &&
-                  this.context.value.transactionData.walletSelector === 0 &&
-                  this.context.value.transactionData.command === 'transfer' && (
+                {this.context.value.transactionData.withSavings &&
+                  this.context.value.transactionData.walletSelector === 0 && (
                     <Text
                       style={{
                         textAlign: 'center',
@@ -269,13 +321,14 @@ class TransactionsModal extends Component {
                       }}>
                       Saved Amount:{' '}
                       {epsilonRound(
-                        this.context.value.transactionData.amountBulk[
-                          this.context.value.transactionData.amountBulk.length -
-                            1
-                        ],
+                        this.context.value.transactionData.savedAmount,
                         9,
                       )}{' '}
-                      {blockchain.token}
+                      {
+                        blockchains[
+                          this.context.value.transactionData.chainSelected
+                        ].token
+                      }
                     </Text>
                   )}
               </View>
@@ -331,78 +384,109 @@ class TransactionsModal extends Component {
                 }}>
                 {this.state.loading ? 'Processing...' : 'Completed'}
               </Text>
-              <ScrollView
-                style={{width: '100%', marginVertical: '15%'}}
-                contentContainerStyle={{
-                  height: 'auto',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                {this.context.value.transactionData.labelBulk.map(
-                  (_, index) => {
-                    return (
+              <View style={{gap: 10, width: '100%', alignItems: 'center'}}>
+                <View
+                  style={[
+                    GlobalStyles.networkShow,
+                    {width: Dimensions.get('screen').width * 0.9},
+                  ]}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}>
+                    <View style={{marginHorizontal: 20}}>
+                      <Text style={{fontSize: 20, color: 'white'}}>
+                        Transaction
+                      </Text>
+                      <Text style={{fontSize: 14, color: 'white'}}>
+                        {this.context.value.transactionData.label}
+                      </Text>
+                    </View>
+                  </View>
+                  <View
+                    style={{
+                      marginHorizontal: 20,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                    <View style={{marginHorizontal: 10}}>
+                      {
+                        blockchains[
+                          this.context.value.transactionData.chainSelected
+                        ].tokens[
+                          this.context.value.transactionData.tokenSelected
+                        ].icon
+                      }
+                    </View>
+                    <Text style={{color: 'white'}}>
+                      {`${epsilonRound(
+                        this.context.value.transactionData.amount,
+                        8,
+                      )}`}{' '}
+                      {
+                        blockchains[
+                          this.context.value.transactionData.chainSelected
+                        ].tokens[
+                          this.context.value.transactionData.tokenSelected
+                        ].symbol
+                      }
+                    </Text>
+                  </View>
+                </View>
+                {this.context.value.transactionData.withSavings &&
+                  this.context.value.transactionData.walletSelector === 0 && (
+                    <View
+                      style={[
+                        GlobalStyles.networkShow,
+                        {width: Dimensions.get('screen').width * 0.9},
+                      ]}>
                       <View
-                        key={index}
-                        style={[
-                          GlobalStyles.networkShow,
-                          {width: Dimensions.get('screen').width * 0.9},
-                        ]}>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'space-around',
-                          }}>
-                          <View style={{marginHorizontal: 20}}>
-                            <Text style={{fontSize: 20, color: 'white'}}>
-                              Transaction
-                            </Text>
-                            <Text style={{fontSize: 14, color: 'white'}}>
-                              {
-                                this.context.value.transactionData.labelBulk[
-                                  index
-                                ]
-                              }
-                            </Text>
-                          </View>
-                        </View>
-                        <View
-                          style={{
-                            marginHorizontal: 20,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}>
-                          <View style={{marginHorizontal: 10}}>
-                            {
-                              blockchain.tokens[
-                                findIndexByProperty(
-                                  blockchain.tokens,
-                                  'symbol',
-                                  this.context.value.transactionData
-                                    .tokenSymbolBulk[index],
-                                )
-                              ].icon
-                            }
-                          </View>
-                          <Text style={{color: 'white'}}>
-                            {`${epsilonRound(
-                              this.context.value.transactionData.amountBulk[
-                                index
-                              ],
-                              8,
-                            )}`}{' '}
-                            {
-                              this.context.value.transactionData
-                                .tokenSymbolBulk[index]
-                            }
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-around',
+                        }}>
+                        <View style={{marginHorizontal: 20}}>
+                          <Text style={{fontSize: 20, color: 'white'}}>
+                            Transaction
+                          </Text>
+                          <Text style={{fontSize: 14, color: 'white'}}>
+                            savingsTransfer
                           </Text>
                         </View>
                       </View>
-                    );
-                  },
-                )}
-              </ScrollView>
+                      <View
+                        style={{
+                          marginHorizontal: 20,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                        <View style={{marginHorizontal: 10}}>
+                          {
+                            blockchains[
+                              this.context.value.transactionData.chainSelected
+                            ].tokens[0].icon
+                          }
+                        </View>
+                        <Text style={{color: 'white'}}>
+                          {`${epsilonRound(
+                            this.context.value.transactionData.savedAmount,
+                            8,
+                          )}`}{' '}
+                          {
+                            blockchains[
+                              this.context.value.transactionData.chainSelected
+                            ].tokens[0].symbol
+                          }
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+              </View>
               <View style={{gap: 10, width: '100%', alignItems: 'center'}}>
                 <Pressable
                   disabled={this.state.loading}
