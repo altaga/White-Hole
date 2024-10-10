@@ -1,5 +1,5 @@
-import {ethers} from 'ethers';
-import React, {Component, Fragment} from 'react';
+import { ethers } from 'ethers';
+import React, { Component, Fragment } from 'react';
 import {
   Dimensions,
   Image,
@@ -11,12 +11,12 @@ import {
   View,
 } from 'react-native';
 import checkMark from '../assets/checkMark.png';
-import GlobalStyles, {mainColor, secondaryColor} from '../styles/styles';
-import {blockchains, CloudPublicKeyEncryption} from './constants';
+import GlobalStyles, { mainColor, secondaryColor } from '../styles/styles';
+import { blockchains, CloudPublicKeyEncryption } from './constants';
 import ContextModule from './contextModule';
-import {epsilonRound, getEncryptedStorageValue, verifyWallet} from './utils';
+import { epsilonRound, getEncryptedStorageValue, verifyWallet } from './utils';
 import Crypto from 'react-native-quick-crypto';
-import {GOOGLE_URL_API} from '@env';
+import { GOOGLE_URL_API } from '@env';
 
 const baseTransactionsModalState = {
   stage: 0, // 0
@@ -54,6 +54,10 @@ class TransactionsModal extends Component {
       this.context.value.transactionData.chainSelected
     ].estimateGas(this.context.value.transactionData.transaction);
     let gasSavings = ethers.BigNumber.from(0);
+    let value = ethers.BigNumber.from(0);
+    if (this.context.value.transactionData.command === "sendMessage") {
+      value = this.context.value.transactionData.transaction.value
+    }
     if (this.context.value.savingsFlag) {
       gasSavings = await this.provider[
         this.context.value.transactionData.chainSelected
@@ -62,10 +66,9 @@ class TransactionsModal extends Component {
     const gasPrice = await this.provider[
       this.context.value.transactionData.chainSelected
     ].getGasPrice();
-    console.log(ethers.utils.formatEther(gas.add(gasSavings)));
     await this.setStateAsync({
       loading: false,
-      gas: ethers.utils.formatEther(gas.add(gasSavings).mul(gasPrice)),
+      gas: ethers.utils.formatEther((gas.add(gasSavings).mul(gasPrice)).add(value)),
     });
   }
 
@@ -77,20 +80,75 @@ class TransactionsModal extends Component {
     if (this.context.value.transactionData.walletSelector === 1) {
       user = await getEncryptedStorageValue('userSavings');
     }
-    if (
-      this.context.value.transactionData.walletSelector === 0 &&
-      this.context.value.transactionData.withSavings
-    ) {
+    if (this.context.value.transactionData.command === "sendMessage") {
       const myHeaders = new Headers();
       myHeaders.append('Content-Type', 'application/json');
       const raw = JSON.stringify({
         user: this.encryptData(user),
-        command: 'transfer',
-        chain: this.context.value.transactionData.chainSelected,
-        token: 0,
-        amount: this.context.value.transactionData.savedAmount,
-        destinationAddress: this.context.value.walletsSavings.eth.address,
+        command: 'sendMessage',
+        fromChain: this.context.value.fromChain,
+        toChain: this.context.value.toChain,
+        data: this.context.value.transactionData.transaction.data,
+        usdc: this.context.value.transactionData.amount,
+        to: this.context.value.transactionData.to,
       });
+      const requestOptions = {
+        method: 'POST',
+        headers: myHeaders,
+        body: raw,
+        redirect: 'follow',
+      };
+      fetch(`${GOOGLE_URL_API}/sendMessage`, requestOptions)
+        .then(response => response.json())
+        .then(async result => {
+          console.log(result);
+          if (result.error === null) {
+            await this.setStateAsync({
+              loading: false,
+              explorerURL: this.context.value.fromChain !== this.context.value.toChain ? `https://wormholescan.io/#/tx/${result.result}` : `${blockchains[this.context.value.transactionData.chainSelected]
+                .blockExplorer
+                }tx/${result.result}`,
+            });
+          }
+        })
+        .catch(error => console.error(error));
+    } else {
+      if (
+        this.context.value.transactionData.walletSelector === 0 &&
+        this.context.value.transactionData.withSavings
+      ) {
+        const myHeaders = new Headers();
+        myHeaders.append('Content-Type', 'application/json');
+        const raw = JSON.stringify({
+          user: this.encryptData(user),
+          command: 'transfer',
+          chain: this.context.value.transactionData.chainSelected,
+          token: 0,
+          amount: this.context.value.transactionData.savedAmount,
+          destinationAddress: this.context.value.walletsSavings.eth.address,
+        });
+        const requestOptions = {
+          method: 'POST',
+          headers: myHeaders,
+          body: raw,
+          redirect: 'follow',
+        };
+        fetch(`${GOOGLE_URL_API}/createTransfers`, requestOptions)
+          .then(response => response.json())
+          .then(async result => console.log(result))
+          .catch(error => console.error(error));
+      }
+      const myHeaders = new Headers();
+      myHeaders.append('Content-Type', 'application/json');
+      const raw = JSON.stringify({
+        user: this.encryptData(user),
+        command: this.context.value.transactionData.command,
+        chain: this.context.value.transactionData.chainSelected,
+        token: this.context.value.transactionData.tokenSelected,
+        amount: this.context.value.transactionData.amount,
+        destinationAddress: this.context.value.transactionData.to,
+      });
+      console.log(raw);
       const requestOptions = {
         method: 'POST',
         headers: myHeaders,
@@ -99,41 +157,19 @@ class TransactionsModal extends Component {
       };
       fetch(`${GOOGLE_URL_API}/createTransfers`, requestOptions)
         .then(response => response.json())
-        .then(async result => console.log(result))
+        .then(async result => {
+          console.log(result);
+          if (result.error === null) {
+            await this.setStateAsync({
+              loading: false,
+              explorerURL: `${blockchains[this.context.value.transactionData.chainSelected]
+                .blockExplorer
+                }tx/${result.result}`,
+            });
+          }
+        })
         .catch(error => console.error(error));
     }
-    const myHeaders = new Headers();
-    myHeaders.append('Content-Type', 'application/json');
-    const raw = JSON.stringify({
-      user: this.encryptData(user),
-      command: this.context.value.transactionData.command,
-      chain: this.context.value.transactionData.chainSelected,
-      token: this.context.value.transactionData.tokenSelected,
-      amount: this.context.value.transactionData.amount,
-      destinationAddress: this.context.value.transactionData.to,
-    });
-    console.log(raw);
-    const requestOptions = {
-      method: 'POST',
-      headers: myHeaders,
-      body: raw,
-      redirect: 'follow',
-    };
-    fetch(`${GOOGLE_URL_API}/createTransfers`, requestOptions)
-      .then(response => response.json())
-      .then(async result => {
-        console.log(result);
-        if (result.error === null) {
-          await this.setStateAsync({
-            loading: false,
-            explorerURL: `${
-              blockchains[this.context.value.transactionData.chainSelected]
-                .blockExplorer
-            }tx/${result.result}`,
-          });
-        }
-      })
-      .catch(error => console.error(error));
   }
 
   // Utils
@@ -190,7 +226,7 @@ class TransactionsModal extends Component {
           }}>
           {this.state.stage === 0 && (
             <React.Fragment>
-              <View style={{width: '100%', gap: 20, alignItems: 'center'}}>
+              <View style={{ width: '100%', gap: 20, alignItems: 'center' }}>
                 <Text
                   style={{
                     textAlign: 'center',
@@ -260,9 +296,9 @@ class TransactionsModal extends Component {
                   {'\n ( $'}
                   {epsilonRound(
                     this.context.value.transactionData.amount *
-                      this.context.value.usdConversion[
-                        this.context.value.transactionData.chainSelected
-                      ][this.context.value.transactionData.tokenSelected],
+                    this.context.value.usdConversion[
+                    this.context.value.transactionData.chainSelected
+                    ][this.context.value.transactionData.tokenSelected],
                     6,
                   )}
                   {' USD )'}
@@ -299,9 +335,9 @@ class TransactionsModal extends Component {
                       {'\n ( $'}
                       {epsilonRound(
                         this.state.gas *
-                          this.context.value.usdConversion[
-                            this.context.value.transactionData.chainSelected
-                          ][this.context.value.transactionData.tokenSelected],
+                        this.context.value.usdConversion[
+                        this.context.value.transactionData.chainSelected
+                        ][this.context.value.transactionData.tokenSelected],
                         6,
                       )}
                       {' USD )'}
@@ -332,12 +368,12 @@ class TransactionsModal extends Component {
                     </Text>
                   )}
               </View>
-              <View style={{gap: 10, width: '100%', alignItems: 'center'}}>
+              <View style={{ gap: 10, width: '100%', alignItems: 'center' }}>
                 <Pressable
                   disabled={this.state.loading}
                   style={[
                     GlobalStyles.buttonStyle,
-                    this.state.loading ? {opacity: 0.5} : {},
+                    this.state.loading ? { opacity: 0.5 } : {},
                   ]}
                   onPress={() => {
                     this.setState({
@@ -372,7 +408,7 @@ class TransactionsModal extends Component {
               <Image
                 source={checkMark}
                 alt="check"
-                style={{width: 200, height: 200}}
+                style={{ width: 200, height: 200 }}
               />
               <Text
                 style={{
@@ -384,11 +420,11 @@ class TransactionsModal extends Component {
                 }}>
                 {this.state.loading ? 'Processing...' : 'Completed'}
               </Text>
-              <View style={{gap: 10, width: '100%', alignItems: 'center'}}>
+              <View style={{ gap: 10, width: '100%', alignItems: 'center' }}>
                 <View
                   style={[
                     GlobalStyles.networkShow,
-                    {width: Dimensions.get('screen').width * 0.9},
+                    { width: Dimensions.get('screen').width * 0.9 },
                   ]}>
                   <View
                     style={{
@@ -396,11 +432,11 @@ class TransactionsModal extends Component {
                       alignItems: 'center',
                       justifyContent: 'space-between',
                     }}>
-                    <View style={{marginHorizontal: 20}}>
-                      <Text style={{fontSize: 20, color: 'white'}}>
+                    <View style={{ marginHorizontal: 20 }}>
+                      <Text style={{ fontSize: 20, color: 'white' }}>
                         Transaction
                       </Text>
-                      <Text style={{fontSize: 14, color: 'white'}}>
+                      <Text style={{ fontSize: 14, color: 'white' }}>
                         {this.context.value.transactionData.label}
                       </Text>
                     </View>
@@ -412,7 +448,7 @@ class TransactionsModal extends Component {
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
-                    <View style={{marginHorizontal: 10}}>
+                    <View style={{ marginHorizontal: 10 }}>
                       {
                         blockchains[
                           this.context.value.transactionData.chainSelected
@@ -421,7 +457,7 @@ class TransactionsModal extends Component {
                         ].icon
                       }
                     </View>
-                    <Text style={{color: 'white'}}>
+                    <Text style={{ color: 'white' }}>
                       {`${epsilonRound(
                         this.context.value.transactionData.amount,
                         8,
@@ -441,7 +477,7 @@ class TransactionsModal extends Component {
                     <View
                       style={[
                         GlobalStyles.networkShow,
-                        {width: Dimensions.get('screen').width * 0.9},
+                        { width: Dimensions.get('screen').width * 0.9 },
                       ]}>
                       <View
                         style={{
@@ -449,11 +485,11 @@ class TransactionsModal extends Component {
                           alignItems: 'center',
                           justifyContent: 'space-around',
                         }}>
-                        <View style={{marginHorizontal: 20}}>
-                          <Text style={{fontSize: 20, color: 'white'}}>
+                        <View style={{ marginHorizontal: 20 }}>
+                          <Text style={{ fontSize: 20, color: 'white' }}>
                             Transaction
                           </Text>
-                          <Text style={{fontSize: 14, color: 'white'}}>
+                          <Text style={{ fontSize: 14, color: 'white' }}>
                             savingsTransfer
                           </Text>
                         </View>
@@ -465,14 +501,14 @@ class TransactionsModal extends Component {
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}>
-                        <View style={{marginHorizontal: 10}}>
+                        <View style={{ marginHorizontal: 10 }}>
                           {
                             blockchains[
                               this.context.value.transactionData.chainSelected
                             ].tokens[0].icon
                           }
                         </View>
-                        <Text style={{color: 'white'}}>
+                        <Text style={{ color: 'white' }}>
                           {`${epsilonRound(
                             this.context.value.transactionData.savedAmount,
                             8,
@@ -487,12 +523,12 @@ class TransactionsModal extends Component {
                     </View>
                   )}
               </View>
-              <View style={{gap: 10, width: '100%', alignItems: 'center'}}>
+              <View style={{ gap: 10, width: '100%', alignItems: 'center' }}>
                 <Pressable
                   disabled={this.state.loading}
                   style={[
                     GlobalStyles.buttonStyle,
-                    this.state.loading ? {opacity: 0.5} : {},
+                    this.state.loading ? { opacity: 0.5 } : {},
                   ]}
                   onPress={() => Linking.openURL(this.state.explorerURL)}>
                   <Text
@@ -512,7 +548,7 @@ class TransactionsModal extends Component {
                       backgroundColor: secondaryColor,
                       borderColor: secondaryColor,
                     },
-                    this.state.loading === '' ? {opacity: 0.5} : {},
+                    this.state.loading === '' ? { opacity: 0.5 } : {},
                   ]}
                   onPress={async () => {
                     this.EventEmitter.emit('refresh');

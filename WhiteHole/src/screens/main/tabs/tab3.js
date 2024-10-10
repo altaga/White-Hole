@@ -79,6 +79,7 @@ export default class Tab3 extends Component {
     if (publicKey !== '') {
       this.EventEmitter.addListener('refresh', async () => {
         Keyboard.dismiss();
+        this.setState(baseTab3State);
         await setAsyncStorageValue({lastRefreshCard: Date.now()});
         this.refresh();
       });
@@ -96,6 +97,10 @@ export default class Tab3 extends Component {
         );
       }
     }
+  }
+
+  componentWillUnmount() {
+    this.EventEmitter.removeAllListeners('refresh');
   }
 
   async addBalance() {

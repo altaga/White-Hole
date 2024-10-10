@@ -192,8 +192,8 @@ export default class Setup extends Component {
                 color: 'white',
                 fontFamily: 'DMSans-Medium',
               }}>
-              "Secure and effortless, featuring optimized savings and seamless
-              card payments."
+              Secure and effortless wallet, featuring optimized savings and seamless
+              card payments.
             </Text>
             <View style={GlobalStyles.buttonContainer}>
               <View

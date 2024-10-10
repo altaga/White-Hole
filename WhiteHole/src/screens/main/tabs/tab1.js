@@ -1,11 +1,11 @@
-import { ethers } from 'ethers';
-import React, { Component } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import {ethers} from 'ethers';
+import React, {Component} from 'react';
+import {Pressable, RefreshControl, ScrollView, Text, View} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import IconIonicons from 'react-native-vector-icons/Ionicons';
-import { abiBatchTokenBalances } from '../../../contracts/batchTokenBalances';
-import GlobalStyles, { mainColor } from '../../../styles/styles';
-import { blockchains, refreshTime } from '../../../utils/constants';
+import {abiBatchTokenBalances} from '../../../contracts/batchTokenBalances';
+import GlobalStyles, {mainColor} from '../../../styles/styles';
+import {blockchains, refreshTime} from '../../../utils/constants';
 import ContextModule from '../../../utils/contextModule';
 import {
   arraySum,
@@ -264,11 +264,11 @@ class Tab1 extends Component {
                     alignItems: 'center',
                     justifyContent: 'space-around',
                   }}>
-                  <View style={{marginHorizontal: 20}}>
+                  <View style={GlobalStyles.networkMarginIcon}>
                     <View>{token.icon}</View>
                   </View>
                   <View style={{justifyContent: 'center'}}>
-                    <Text style={{fontSize: 18, color: 'white'}}>
+                    <Text style={GlobalStyles.networkTokenName}>
                       {token.name}
                     </Text>
                     <View
@@ -277,7 +277,7 @@ class Tab1 extends Component {
                         alignItems: 'center',
                         justifyContent: 'flex-start',
                       }}>
-                      <Text style={{fontSize: 12, color: 'white'}}>
+                      <Text style={GlobalStyles.networkTokenData}>
                         {this.context.value.balances[i][j] === 0
                           ? '0'
                           : this.context.value.balances[i][j] < 0.001
@@ -288,7 +288,7 @@ class Tab1 extends Component {
                             )}{' '}
                         {token.symbol}
                       </Text>
-                      <Text style={{fontSize: 12, color: 'white'}}>
+                      <Text style={GlobalStyles.networkTokenData}>
                         {`  -  ($${epsilonRound(
                           this.context.value.usdConversion[i][j],
                           4,

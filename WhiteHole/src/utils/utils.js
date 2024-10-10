@@ -297,6 +297,7 @@ export function setChains(array) {
   return array.map((item, index) => {
     return {
       ...item,
+      color: "white",
       index,
       value: index.toString(),
       label: item.network,
@@ -320,6 +321,25 @@ export function decrypt(encryptedText, _secret, myIV) {
   decrypted += decipher.final('utf8');
 
   return decrypted;
+}
+
+export function encrypt(plaintext, _secret, myIV = null) {
+	const secret = ethers.utils.getAddress(_secret)
+	// Create a key from the secret using SHA-256 (32 bytes for AES-256)
+	const key = Crypto.createHash('sha256').update(secret).digest();
+
+	// Generate a random 16-byte IV
+	const iv = myIV===null ? Crypto.randomBytes(16) : Buffer.from(myIV, 'base64');
+
+	// Create the cipher object
+	const cipher = Crypto.createCipheriv('aes-256-cbc', key, iv);
+
+	// Encrypt the plaintext
+	let encrypted = cipher.update(plaintext, 'utf8', 'base64');
+	encrypted += cipher.final('base64');
+
+	// Return IV + encrypted text, separated by ':'
+	return [iv.toString('base64'), encrypted]
 }
 
 export function removeDuplicatesByKey(arr, key) {

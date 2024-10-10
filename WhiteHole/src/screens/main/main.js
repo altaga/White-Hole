@@ -15,7 +15,7 @@ import Tab4 from './tabs/tab4';
 // Tabs
 
 const BaseStateMain = {
-  tab: 3, // 0
+  tab: 0, // 0
   mainHeight: main,
 };
 

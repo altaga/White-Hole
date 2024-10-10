@@ -55,6 +55,37 @@ const BaseStatePaymentWallet = {
   saveData: '',
 };
 
+const sortByPriority = (array, key) => {
+  return array.sort((a, b) => {
+    const getPriority = value => {
+      if (value.includes('USDC')) return 2; // Highest priority
+      if (value.includes('EURC')) return 1; // Second priority
+      return 0; // No priority
+    };
+    const priorityA = getPriority(a[key]);
+    const priorityB = getPriority(b[key]);
+    return priorityB - priorityA; // Sort descending by priority
+  });
+};
+
+const plain = sortByPriority(
+  blockchains
+    .map((blockchain, i, arrayB) =>
+      blockchain.tokens.map((token, j, arrayT) => {
+        return {
+          ...blockchain,
+          ...token,
+          i,
+          j,
+          arrayB: arrayB.length,
+          arrayT: arrayT.length,
+        };
+      }),
+    )
+    .flat(),
+  'symbol',
+);
+
 class PaymentWallet extends Component {
   constructor(props) {
     super(props);
@@ -92,9 +123,9 @@ class PaymentWallet extends Component {
           <h1 style="font-size: 3rem;">Type: Card Payment</h1>
           <h1 style="font-size: 3rem;">------------------ • ------------------</h1>
           <h1 style="font-size: 3rem;">Transaction</h1>
-          <h1 style="font-size: 3rem;">Amount: ${
-            this.state.transactionDisplay.amount
-          } ${this.state.transactionDisplay.name}</h1>
+          <h1 style="font-size: 3rem;">Amount: ${deleteLeadingZeros(
+            formatInputText(this.state.transactionDisplay.amount),
+          )} ${this.state.transactionDisplay.name}</h1>
           <h1 style="font-size: 3rem;">------------------ • ------------------</h1>
           <img style="width:70%" src='${
             'data:image/png;base64,' + this.state.saveData
@@ -358,58 +389,64 @@ class PaymentWallet extends Component {
             )}
             {this.state.stage === 2 && (
               <React.Fragment>
-                <Text style={[GlobalStyles.title, {marginVertical: 50}]}>
+                <Text style={[GlobalStyles.titlePaymentToken]}>
                   Select Payment Token
                 </Text>
                 <ScrollView>
-                  {blockchains.map((chain, i, array1) =>
-                    chain.tokens.map((token, j, array2) =>
-                      this.state.activeTokens[i][j] ? (
-                        <View
-                          key={`${chain.name}-${i}-${j}`}
-                          style={{
-                            paddingBottom:
-                              array1.length === i + 1 && array2.length === j + 1
-                                ? 0
-                                : 20,
-                            marginBottom: 20,
+                  {plain.map((token, i) =>
+                    this.state.activeTokens[token.i][token.j] ? (
+                      <View
+                        key={`${token.name}-${token.i}-${token.j}`}
+                        style={{
+                          paddingBottom:
+                            token.arrayB === token.i + 1 &&
+                            token.arrayT === token.j + 1
+                              ? 0
+                              : 20,
+                          marginBottom: 20,
+                        }}>
+                        <Pressable
+                          disabled={this.state.loading}
+                          style={[
+                            GlobalStyles.buttonStyle,
+                            this.state.loading ? {opacity: 0.5} : {},
+                            (token.symbol === 'USDC' ||
+                              token.symbol === 'EURC') && {
+                              backgroundColor: '#2775ca',
+                              borderColor: '#2775ca',
+                            },
+                          ]}
+                          onPress={async () => {
+                            try {
+                              await this.setStateAsync({
+                                transactionDisplay: {
+                                  amount: (
+                                    this.state.amount /
+                                    this.context.value.usdConversion[token.i][
+                                      token.j
+                                    ]
+                                  ).toFixed(6),
+                                  name: token.symbol,
+                                  icon: token.icon,
+                                },
+                                status: 'Processing...',
+                                stage: 3,
+                                explorerURL: '',
+                                loading: true,
+                              });
+                              await this.payFromCard(token.i, token.j);
+                            } catch (error) {
+                              console.log(error);
+                              await this.setStateAsync({loading: false});
+                            }
                           }}>
-                          <Pressable
-                            disabled={this.state.loading}
-                            style={[
-                              GlobalStyles.buttonStyle,
-                              this.state.loading ? {opacity: 0.5} : {},
-                            ]}
-                            onPress={async () => {
-                              try {
-                                await this.setStateAsync({
-                                  transactionDisplay: {
-                                    amount: (
-                                      this.state.amount /
-                                      this.context.value.usdConversion[i][j]
-                                    ).toFixed(6),
-                                    name: blockchains[i].tokens[j].symbol,
-                                    icon: blockchains[i].tokens[j].icon,
-                                  },
-                                  status: 'Processing...',
-                                  stage: 3,
-                                  explorerURL: '',
-                                  loading: true,
-                                });
-                                await this.payFromCard(i, j);
-                              } catch (error) {
-                                console.log(error);
-                                await this.setStateAsync({loading: false});
-                              }
-                            }}>
-                            <Text style={GlobalStyles.buttonText}>
-                              Pay with {token.symbol}
-                            </Text>
-                          </Pressable>
-                        </View>
-                      ) : (
-                        <Fragment key={`${chain.name}-${i}-${j}`} />
-                      ),
+                          <Text style={GlobalStyles.buttonText}>
+                            {token.name}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Fragment key={`${token.name}-${token.i}-${token.j}`} />
                     ),
                   )}
                 </ScrollView>
@@ -475,7 +512,9 @@ class PaymentWallet extends Component {
                         {this.state.transactionDisplay.icon}
                       </View>
                       <Text style={{color: 'white'}}>
-                        {`${this.state.transactionDisplay.amount}`}{' '}
+                        {`${deleteLeadingZeros(
+                          formatInputText(this.state.transactionDisplay.amount),
+                        )}`}{' '}
                         {this.state.transactionDisplay.name}
                       </Text>
                     </View>

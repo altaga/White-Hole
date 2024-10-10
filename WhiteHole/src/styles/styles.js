@@ -1,4 +1,4 @@
-import { Dimensions, StatusBar, StyleSheet } from 'react-native';
+import {Dimensions, StatusBar, StyleSheet} from 'react-native';
 
 export const screenHeight = Dimensions.get('screen').height;
 export const windowHeight = Dimensions.get('window').height;
@@ -11,7 +11,9 @@ export const backgroundColor = '#000000';
 
 export const header = 70;
 export const footer = 60;
-export const main = Dimensions.get('window').height - (header + footer);
+export const main =
+  Dimensions.get('window').height -
+  (header + footer + (ratio > 1.7 ? 0 : StatusBar.currentHeight));
 export const ratio =
   Dimensions.get('window').height / Dimensions.get('window').width;
 export const StatusBarHeight = StatusBar.currentHeight;
@@ -60,6 +62,13 @@ const GlobalStyles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     fontFamily: 'Exo2-Bold',
+  },
+  titlePaymentToken: {
+    fontSize: ratio > 1.7 ? 32 : 26,
+    color: '#fff',
+    textAlign: 'center',
+    fontFamily: 'Exo2-Bold',
+    marginVertical: ratio > 1.7 ? 36 : 50
   },
   description: {
     fontWeight: 'bold',
@@ -121,7 +130,7 @@ const GlobalStyles = StyleSheet.create({
     borderColor: '#aaaaaa',
   },
   buttonStyleDot: {
-    backgroundColor: "black",
+    backgroundColor: 'black',
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
@@ -231,10 +240,10 @@ const GlobalStyles = StyleSheet.create({
     display: 'flex',
     justifyContent: 'space-evenly',
     alignItems: 'center',
-    height: ratio > 1.7 ? main * 0.4 : main * 0.45,
+    height: ratio > 1.7 ? main * 0.47 : main * 0.45,
   },
   tokensContainer: {
-    height: ratio > 1.7 ? main * 0.6 : main * 0.55,
+    height: 10,
     marginBottom: 0,
   },
   // Tab 2
@@ -278,6 +287,17 @@ const GlobalStyles = StyleSheet.create({
     borderRadius: 10,
     marginVertical: 10,
   },
+  networkMarginIcon: {
+    marginHorizontal: ratio > 1.7 ? 13 : 20
+  },
+  networkTokenName: {
+    fontSize: ratio > 1.7 ? 16 : 18,
+    color: 'white',
+  },
+  networkTokenData: {
+    fontSize: ratio > 1.7 ? 12 : 12,
+    color: 'white',
+  },
   // Send Styles
   input: {
     borderRadius: 5,
@@ -302,11 +322,11 @@ const GlobalStyles = StyleSheet.create({
     marginTop: 20,
     color: 'black',
     backgroundColor: 'white',
-    fontSize: 20, 
-    paddingHorizontal: 20, 
-    textAlign: "justify", 
-    width: '66%', 
-    alignSelf: "flex-end", 
+    fontSize: 20,
+    paddingHorizontal: 20,
+    textAlign: 'justify',
+    width: '66%',
+    alignSelf: 'flex-end',
   },
   // Modal
   singleModalButton: {

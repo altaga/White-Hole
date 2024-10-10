@@ -71,9 +71,7 @@ class SplashLoading extends Component {
           usdConversionTrad:
             usdConversionTrad ?? this.context.value.usdConversionTrad,
         });
-        this.props.navigation.navigate('Main', { // Chat
-          index: 0,
-        }); // Main
+        this.props.navigation.navigate('Main'); // Main
       } else {
         this.props.navigation.navigate('Setup');
       }

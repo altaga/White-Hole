@@ -1,7 +1,8 @@
-import {ethers} from 'ethers';
-import React, {Component} from 'react';
+import { ethers } from 'ethers';
+import React, { Component } from 'react';
 import {
   Dimensions,
+  Keyboard,
   Modal,
   NativeEventEmitter,
   Pressable,
@@ -9,17 +10,19 @@ import {
   ScrollView,
   Text,
   TextInput,
+  ToastAndroid,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Header from '../../components/header';
-import GlobalStyles, {header, main, mainColor} from '../../styles/styles';
-import {blockchains, USDCicon} from '../../utils/constants';
+import GlobalStyles, { header, main, mainColor } from '../../styles/styles';
+import { blockchains, USDCicon } from '../../utils/constants';
 import ContextModule from '../../utils/contextModule';
-import {setAsyncStorageValue} from '../../utils/utils';
+import { decrypt, encrypt, findIndexByProperty, getAsyncStorageValue, removeDuplicatesByKey, setAsyncStorageValue } from '../../utils/utils';
+import { abiMultiChainChat } from '../../contracts/multiChainChat';
 
 const chatBaseState = {
   loading: false,
@@ -52,16 +55,188 @@ export default class Chat extends Component {
   async componentDidMount() {
     this.props.navigation.addListener('focus', async () => {
       console.log(this.props.route.name);
-      this.scrollView.scrollToEnd({animated: true});
+      this.scrollView.scrollToEnd({ animated: true });
       this.EventEmitter.addListener('refresh', async () => {
         this.setState(chatBaseState);
         Keyboard.dismiss();
+        await setAsyncStorageValue({ lastRefreshChat: Date.now() });
+        this.getMessages();
       });
     });
     this.props.navigation.addListener('blur', async () => {
       this.setState(chatBaseState);
       this.EventEmitter.removeAllListeners('refresh');
     });
+  }
+
+  async sendMessage() {
+    const index = findIndexByProperty(chains, 'wormholeChainId', this.context.value.fromChain);
+    const index2 = findIndexByProperty(chains, 'wormholeChainId', this.context.value.toChain);
+    const crossChainFlag = this.context.value.fromChain !== this.context.value.toChain;
+    const to = this.props.route.params?.address
+    const [iv, messFrom] = await encrypt(this.state.message, this.context.value.wallets.eth.address)
+    const [_, messTo] = await encrypt(this.state.message, to, iv)
+    const chatInterface = new ethers.utils.Interface(abiMultiChainChat);
+    const chat = new ethers.Contract(
+      chains[index].crossChainChat,
+      abiMultiChainChat,
+      this.provider[index],
+    )
+    let transaction = {};
+    let transactionSavings = {};
+    let savings = 0;
+    if (crossChainFlag) {
+      // Dynamically quote the cross-chain cost
+      const gas_limit = 700_000
+      const quote = await chat.quoteCrossChainCost(this.context.value.toChain, gas_limit);
+      const data = chatInterface.encodeFunctionData('sendMessage', [
+        this.context.value.toChain, chains[index2].crossChainChat, gas_limit, to, messFrom, messTo, iv, ethers.utils.parseUnits(this.state.amount === '' ? '0' : this.state.amount, 6),
+      ])
+      transaction = {
+        from: this.context.value.wallets.eth.address,
+        to: chains[index].crossChainChat,
+        data,
+        value: quote
+      }
+    }
+    else {
+      const data = chatInterface.encodeFunctionData('addMessage', [
+        to, ethers.utils.parseUnits(this.state.amount === '' ? '0' : this.state.amount, 6), messFrom, messTo, iv
+      ])
+      transaction = {
+        from: this.context.value.wallets.eth.address,
+        to: chains[index].crossChainChat,
+        data,
+        value: ethers.utils.parseEther('0')
+      }
+    }
+    this.context.setValue({
+      isTransactionActive: true,
+      transactionData: {
+        // Wallet Selection
+        walletSelector: 0,
+        // Commands
+        command: "sendMessage",
+        chainSelected: index + 1,
+        tokenSelected: 1,
+        // Transaction
+        transaction,
+        // With Savings
+        withSavings: false,
+        transactionSavings,
+        // Single Display
+        // Display
+        label: crossChainFlag ? 'Send Cross Chain' : 'Send On Chain',
+        to,
+        amount: this.state.amount === '' ? '0' : this.state.amount,
+        tokenSymbol: "USDC",
+        // Display Savings
+        savedAmount: savings,
+      },
+    });
+    await this.setStateAsync({ loading: false });
+  }
+
+  async getMessages() {
+    const chatContracts = chains.map(
+      (x, i) =>
+        new ethers.Contract(x.crossChainChat, abiMultiChainChat, this.provider[i]),
+    );
+    const counterByAddresses = await Promise.all(
+      chatContracts.map(contract =>
+        contract.chatCounter(this.context.value.wallets.eth.address),
+      ),
+    );
+    // Chat Counters
+    const chatCounters = counterByAddresses.map(x => x.toNumber());
+    let memoryChatCounters = await getAsyncStorageValue('memoryChatCounters');
+    if (memoryChatCounters === null) {
+      console.log('memoryChatCounters is null');
+      setAsyncStorageValue({ memoryChatCounters: [0,0,0] });
+      memoryChatCounters = [0,0,0];
+    }
+    let memoryMessages = await getAsyncStorageValue('memoryMessages');
+    if (memoryMessages === null) {
+      console.log('memoryMessages is null');
+      setAsyncStorageValue({ memoryMessages: [] });
+      memoryMessages = [];
+    }
+    let messages = memoryMessages
+    if (chatCounters.some((value, i) => value > memoryChatCounters[i])) { // Avoid fetching if there are no messages in the chat
+      for (const [index, counter] of chatCounters.entries()) {
+        for (let i = memoryChatCounters[index]; counter> i; i++) {
+          const message = await chatContracts[index].chatHistory(
+            this.context.value.wallets.eth.address,
+            i,
+          );
+          let myJson;
+          if (
+            this.context.value.wallets.eth.address === message.to.toLowerCase()
+          ) {
+            myJson = {
+              fromChainId: message.fromChainId,
+              toChainId: message.toChainId,
+              from: message.from,
+              to: message.to,
+              message: decrypt(
+                message.messTo,
+                this.context.value.wallets.eth.address,
+                message.iv,
+              ),
+              amount: ethers.utils.formatUnits(message.amount, 6),
+              blocktime: message.blocktime.toNumber() * 1000,
+              index: i,
+            };
+            messages.push(myJson);
+          } else if (this.context.value.wallets.eth.address === message.from.toLowerCase()) {
+            myJson = {
+              fromChainId: message.fromChainId,
+              toChainId: message.toChainId,
+              from: message.from,
+              to: message.to,
+              message: decrypt(
+                message.messFrom,
+                this.context.value.wallets.eth.address,
+                message.iv,
+              ),
+              amount: ethers.utils.formatUnits(message.amount, 6),
+              blocktime: message.blocktime.toNumber() * 1000,
+              index: i,
+            };
+            messages.push(myJson);
+          }
+        }
+      }
+      // This function can be optimized
+      const chat = messages.sort((a, b) => a.blocktime - b.blocktime).map((x, _, arr) => {
+        let json = {};
+        if (x.from.toLowerCase() === this.context.value.wallets.eth.address.toLowerCase()) {
+          json['address'] = x.to;
+        } else {
+          json['address'] = x.from;
+        }
+        json['messages'] = arr.filter(
+          y => y.to === json['address'] || y.from === json['address'],
+        );
+        json['messages'] = removeDuplicatesByKey(
+          [...json['messages']],
+          'blocktime',
+        );
+        json['timestamp'] = x.blocktime;
+        return json;
+      });
+      let chatGeneral = removeDuplicatesByKey(chat, 'address');
+      chatGeneral = chatGeneral.sort((a, b) => b.timestamp - a.timestamp);
+      await setAsyncStorageValue({ chatGeneral });
+      await setAsyncStorageValue({ memoryMessages: messages });
+      await setAsyncStorageValue({ memoryChatCounters: chatCounters });
+      this.context.setValue({
+        chatGeneral,
+      })
+    }
+    else{
+      ToastAndroid.show('No new messages', ToastAndroid.SHORT);
+    }
   }
 
   // Utils
@@ -190,7 +365,7 @@ export default class Chat extends Component {
                         this.context.setValue({
                           toChain: x.wormholeChainId,
                         });
-                        setAsyncStorageValue({toChain: x.wormholeChainId});
+                        setAsyncStorageValue({ toChain: x.wormholeChainId });
                       }}
                       style={{
                         borderColor:
@@ -207,8 +382,8 @@ export default class Chat extends Component {
                 </View>
               </View>
               <Pressable
-                onPress={() => this.setState({chainSelectorVisible: false})}
-                style={[GlobalStyles.buttonStyle, {marginBottom: 12}]}>
+                onPress={() => this.setState({ chainSelectorVisible: false })}
+                style={[GlobalStyles.buttonStyle, { marginBottom: 12 }]}>
                 <Text
                   style={{
                     color: 'white',
@@ -260,32 +435,32 @@ export default class Chat extends Component {
                   justifyContent: 'space-around',
                   alignItems: 'center',
                 }}>
-                <View style={{width: '100%'}}>
+                <View style={{ width: '100%' }}>
                   <TextInput
                     onPressOut={() =>
-                      this.scrollView.scrollToEnd({animated: true})
+                      this.scrollView.scrollToEnd({ animated: true })
                     }
                     onChange={() =>
-                      this.scrollView.scrollToEnd({animated: true})
+                      this.scrollView.scrollToEnd({ animated: true })
                     }
                     onFocus={() =>
-                      this.scrollView.scrollToEnd({animated: true})
+                      this.scrollView.scrollToEnd({ animated: true })
                     }
                     style={[GlobalStyles.input]}
                     keyboardType="decimal-pad"
                     value={this.state.amount}
                     onChangeText={amount => {
-                      this.setState({amount});
+                      this.setState({ amount });
                     }}
                   />
                 </View>
               </View>
               <Pressable
                 onPress={() => {
-                  this.setState({usdcVisible: false});
-                  this.scrollView.scrollToEnd({animated: true});
+                  this.setState({ usdcVisible: false });
+                  this.scrollView.scrollToEnd({ animated: true });
                 }}
-                style={[GlobalStyles.buttonStyle, {marginBottom: 12}]}>
+                style={[GlobalStyles.buttonStyle, { marginBottom: 12 }]}>
                 <Text
                   style={{
                     color: 'white',
@@ -300,38 +475,40 @@ export default class Chat extends Component {
             </View>
           </View>
         </Modal>
+        <Text style={{ position: 'absolute', top: header, height: 40, fontSize: 16, color: 'white', textAlign: 'center' }}>
+          {
+            "To: "
+          }
+          {this.props.route.params?.address.substring(0, 12)}
+          {'...'}
+          {this.props.route.params?.address.substring(
+            this.props.route.params?.address.length - 10,
+            this.props.route.params?.address.length,
+          )}
+        </Text>
         <ScrollView
           ref={view => {
             this.scrollView = view;
           }}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              progressBackgroundColor={mainColor}
-              refreshing={this.state.loading}
-              onRefresh={async () => {
-                console.log('Refresh');
-              }}
-            />
-          }
           style={{
             height: main,
             width: Dimensions.get('window').width,
-            marginTop: header,
+            marginTop: header + 40,
           }}
           contentContainerStyle={[
             GlobalStyles.tab3ScrollContainer,
             {
               height: 'auto',
-              paddingHorizontal: 6,
+              paddingHorizontal: 10,
             },
           ]}>
-          {this.context.value.chatGeneral[
-            this.props.route.params?.index
-          ].messages.map((message, i, array) => {
+          {this.context.value.chatGeneral.filter(x => x.address.toLowerCase() === this.props.route.params?.address.toLowerCase())[0].messages.map((message, i, array) => {
             let flag = false;
+            let crosschainFlag = false;
             if (i !== 0) {
               flag = message.from !== array[i - 1].from;
+              crosschainFlag = message.fromChainId !== message.toChainId;
             }
             return (
               <LinearGradient
@@ -339,37 +516,40 @@ export default class Chat extends Component {
                 useAngle={true}
                 key={i}
                 style={{
-                  marginTop: flag ? 10 : 5,
-                  backgroundColor:
-                    message.from === this.context.value.wallets.eth.address
-                      ? mainColor
-                      : '#1a1a1a',
+                  marginTop: flag ? 15 : 5,
                   borderRadius: 10,
+                  borderBottomRightRadius: message.from.toLowerCase() === this.context.value.wallets.eth.address.toLowerCase() ? 0 : 10,
+                  borderBottomLeftRadius: message.from.toLowerCase() === this.context.value.wallets.eth.address.toLowerCase() ? 10 : 0,
                   paddingHorizontal: 16,
                   paddingVertical: 10,
                   maxWidth: '80%',
                   alignSelf:
-                    message.from === this.context.value.wallets.eth.address
+                    message.from.toLowerCase() === this.context.value.wallets.eth.address.toLowerCase()
                       ? 'flex-end'
                       : 'flex-start',
                 }}
                 colors={[
-                  colorByWChainId[message.fromChainId],
-                  colorByWChainId[message.toChainId],
+                  message.from.toLowerCase() === this.context.value.wallets.eth.address.toLowerCase()
+                    ? colorByWChainId[message.fromChainId] + 'cc' : colorByWChainId[message.fromChainId] + '40',
+                  message.from.toLowerCase() === this.context.value.wallets.eth.address.toLowerCase()
+                    ? colorByWChainId[message.toChainId] + 'cc' : colorByWChainId[message.toChainId] + '40',
                 ]}>
-                <Text style={{color: 'white', textAlign: 'justify'}}>
+                <Text style={{ color: 'white', textAlign: 'justify', marginBottom: 10, fontSize: 16 }}>
                   {message.message}
                 </Text>
-                <Text
-                  style={{
-                    color: '#cccccc',
-                    alignSelf: 'flex-end',
-                    fontSize: 12,
-                    marginRight: -10,
-                    marginBottom: -5,
-                  }}>
-                  {new Date(message.blocktime).toLocaleTimeString()}
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: "space-between", gap: 10 }}>
+                  {message.amount > 0 ? <Text style={{ color: 'white', fontSize: 12 }}>{message.amount} USDC {crosschainFlag ? "with CCTP" : ""}</Text> : <View />}
+                  <Text
+                    style={{
+                      color: '#cccccc',
+                      alignSelf: 'flex-end',
+                      fontSize: 12,
+                      marginRight: -10,
+                      marginBottom: -5,
+                    }}>
+                    {new Date(message.blocktime).toLocaleTimeString()}
+                  </Text>
+                </View>
               </LinearGradient>
             );
           })}
@@ -384,7 +564,7 @@ export default class Chat extends Component {
               alignItems: 'center',
               gap: 10,
             }}>
-            <Text style={{color: 'white', fontSize: 20}}>
+            <Text style={{ color: 'white', fontSize: 20 }}>
               Amount Transferred: {this.state.amount} USDC
             </Text>
             {USDCicon}
@@ -402,7 +582,7 @@ export default class Chat extends Component {
             },
           ]}>
           <Pressable
-            onPress={() => this.setState({usdcVisible: true})}
+            onPress={() => this.setState({ usdcVisible: true })}
             style={{
               width: '10%',
               height: 'auto',
@@ -416,7 +596,7 @@ export default class Chat extends Component {
             <FontAwesome name="dollar" size={22} color="white" />
           </Pressable>
           <Pressable
-            onPress={() => this.setState({chainSelectorVisible: true})}
+            onPress={() => this.setState({ chainSelectorVisible: true })}
             style={{
               width: '10%',
               height: 'auto',
@@ -430,16 +610,16 @@ export default class Chat extends Component {
             <Ionicons name="settings-sharp" size={22} color="white" />
           </Pressable>
           <TextInput
-            onPressOut={() => this.scrollView.scrollToEnd({animated: true})}
-            onChange={() => this.scrollView.scrollToEnd({animated: true})}
-            onFocus={() => this.scrollView.scrollToEnd({animated: true})}
+            onPressOut={() => this.scrollView.scrollToEnd({ animated: true })}
+            onChange={() => this.scrollView.scrollToEnd({ animated: true })}
+            onFocus={() => this.scrollView.scrollToEnd({ animated: true })}
             multiline
             onContentSizeChange={async event => {
               if (event.nativeEvent.contentSize.height < 120) {
                 await this.setStateAsync({
                   inputHeight: event.nativeEvent.contentSize.height,
                 });
-                this.scrollView.scrollToEnd({animated: true});
+                this.scrollView.scrollToEnd({ animated: true });
               }
             }}
             style={[
@@ -451,10 +631,13 @@ export default class Chat extends Component {
             keyboardType="default"
             value={this.state.message}
             onChangeText={value => {
-              this.setState({message: value});
+              this.setState({ message: value });
             }}
           />
           <Pressable
+            onPress={async () => {
+              await this.sendMessage();
+            }}
             style={{
               width: '10%',
               height: 'auto',
