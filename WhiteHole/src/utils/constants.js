@@ -74,7 +74,7 @@ export const blockchains = [
         coingecko: 'ethereum',
       },
       {
-        name: 'USD Coin',
+        name: 'USDC',
         symbol: 'USDC',
         address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
         decimals: 6,
@@ -82,7 +82,7 @@ export const blockchains = [
         coingecko: 'usd-coin',
       },
       {
-        name: 'EUR Coin',
+        name: 'EURC',
         symbol: 'EURC',
         address: '0x1aBaEA1f7C830bD89Acc67eC4af516284b1bC33c',
         decimals: 6,
@@ -133,7 +133,7 @@ export const blockchains = [
         coingecko: 'avalanche-2',
       },
       {
-        name: 'USD Coin (AVAX)',
+        name: 'USDC (AVAX)',
         symbol: 'USDC',
         address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
         decimals: 6,
@@ -141,7 +141,7 @@ export const blockchains = [
         coingecko: 'usd-coin',
       },
       {
-        name: 'EUR Coin (AVAX)',
+        name: 'EURC (AVAX)',
         symbol: 'EURC',
         address: '0xc891eb4cbdeff6e073e859e987815ed1505c2acd',
         decimals: 6,
@@ -192,7 +192,7 @@ export const blockchains = [
         coingecko: 'matic-network',
       },
       {
-        name: 'USD Coin (Polygon)',
+        name: 'USDC (Polygon)',
         symbol: 'USDC',
         address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
         decimals: 6,
@@ -243,7 +243,7 @@ export const blockchains = [
         coingecko: 'ethereum',
       },
       {
-        name: 'USD Coin (ARB)',
+        name: 'USDC (ARB)',
         symbol: 'USDC',
         address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
         decimals: 6,
