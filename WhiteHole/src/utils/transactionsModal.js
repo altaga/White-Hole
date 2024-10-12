@@ -231,7 +231,7 @@ class TransactionsModal extends Component {
                   style={{
                     textAlign: 'center',
                     color: 'white',
-                    fontSize: 20,
+                    fontSize: 18,
                     width: '100%',
                     marginTop: 10,
                   }}>
@@ -241,7 +241,7 @@ class TransactionsModal extends Component {
                   style={{
                     textAlign: 'center',
                     color: 'white',
-                    fontSize: 26,
+                    fontSize: 22,
                     width: '100%',
                     marginBottom: 10,
                   }}>
@@ -251,7 +251,7 @@ class TransactionsModal extends Component {
                   style={{
                     textAlign: 'center',
                     color: 'white',
-                    fontSize: 20,
+                    fontSize: 18,
                     width: '100%',
                     marginTop: 10,
                   }}>
@@ -264,8 +264,8 @@ class TransactionsModal extends Component {
                     fontSize: verifyWallet(
                       this.context.value.transactionData.to,
                     )
-                      ? 20
-                      : 24,
+                      ? 18
+                      : 22,
                     width: '100%',
                     marginBottom: 10,
                   }}>
@@ -277,7 +277,7 @@ class TransactionsModal extends Component {
                   style={{
                     textAlign: 'center',
                     color: 'white',
-                    fontSize: 20,
+                    fontSize: 18,
                     width: '100%',
                     marginTop: 10,
                   }}>
@@ -287,7 +287,7 @@ class TransactionsModal extends Component {
                   style={{
                     textAlign: 'center',
                     color: 'white',
-                    fontSize: 24,
+                    fontSize: 20,
                     width: '100%',
                     marginBottom: 10,
                   }}>
@@ -308,7 +308,7 @@ class TransactionsModal extends Component {
                   style={{
                     textAlign: 'center',
                     color: 'white',
-                    fontSize: 20,
+                    fontSize: 18,
                     width: '100%',
                     marginTop: 10,
                   }}>
@@ -318,7 +318,7 @@ class TransactionsModal extends Component {
                   style={{
                     textAlign: 'center',
                     color: 'white',
-                    fontSize: 24,
+                    fontSize: 20,
                     width: '100%',
                     marginBottom: 10,
                   }}>
