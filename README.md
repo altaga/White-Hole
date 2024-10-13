@@ -20,33 +20,33 @@ VIDEODEMO: [VIDEO](pending...)
 
 - Programmable Wallets: To improve the user experience and security in the management of their crypto assets, we decided to implement Developer Controlled Wallets, allowing users to manage their assets safely and without the risk of losing their private keys.
 
-  - Main Account: Within the schematics you can see that we have our main wallet, which is a [Developer Controlled Wallet](https://developers.circle.com/w3s/developer-controlled-wallet-quickstart), you won’t have to worry about remembering your mnemonic because Circle protects your wallet. More details in the section [Main Account](#assets-management).
+  - Main Account: Within the schematics you can see that we have our main wallet, which is a [Developer Controlled Wallet](https://developers.circle.com/w3s/developer-controlled-wallet-quickstart), you won’t have to worry about remembering your mnemonic because Circle protects your wallet. More details in the following section [Main Account](#assets-management).
 
-  - Savings Account: This wallet, like the previous one, is a [Developer Controlled Wallet](https://developers.circle.com/w3s/developer-controlled-wallet-quickstart), which will save the savings on each transaction according to the chosen savings protocol. More details in the section [Savings Account](#smart-savings).
+  - Savings Account: This wallet, like the previous one, is a [Developer Controlled Wallet](https://developers.circle.com/w3s/developer-controlled-wallet-quickstart), which will save the savings on each transaction according to the chosen savings protocol. More details in the following section [Savings Account](#smart-savings).
 
-  - Card Account: This wallet, like the previous one, is a [Developer Controlled Wallet](https://developers.circle.com/w3s/developer-controlled-wallet-quickstart), sin embargo a diferencia de las anteriores esta solo puede realizatr transacciones cuando es utilizada mediante la tarjeta fisica que se haya usado para crearla. More details in the section [Web3 Card](#recommended-token).
+  - Card Account: This wallet, like the previous one, is a [Developer Controlled Wallet](https://developers.circle.com/w3s/developer-controlled-wallet-quickstart), however, unlike the previous ones, this one can only carry out transactions when it is used with the physical card that was used to create it. More details in the following section [Web3 Card](#recommended-token).
 
-- USDC and EURC: Incorporamos stablecoins como USDC y EURC como opciones recomendables de pago, ya que mantienen una relación 1:1 con activos reales, lo que permite a los negocios y usuarios mandar y recibir crypto assets de forma segura sin arriesgarse a la volatilidad del mercado. More details in the section [Payment Example](#payment-example).
+- USDC and EURC: We have incorporated stablecoins such as USDC and EURC as recommended payment options, as they maintain a 1:1 ratio with real assets, allowing businesses and users to send and receive crypto assets safely without risking market volatility. More details in the following section [Payment Example](#payment-example).
 
-- Smart Contract Platform: En este caso la aplicacion ocupa gestionar informacion de diversos contratos de nuestra creacion, para poder organizar mejor los contratos que tenemos en cada red. More details in the section [SCP](#smart-contract-platform-batch-balances).
+- Smart Contract Platform: In this case, the application is used to manage information on various contracts of our creation, in order to better organize the contracts we have in each network. More details in the section [SCP](#smart-contract-platform-batch-balances).
 
-- CCTP: Utilizamos el servicio de CCTP que ya tiene integrado Wormhole como Circle Relayer. El cual nos permite de forma muy sencilla realizar Cross Chain Transfers de USDC. More details in the section [CCTP](#cctp-wormhole-integration).
+- CCTP: We use the CCTP service that Wormhole already has integrated as a Circle Relayer. This allows us to easily perform Cross Chain Transfers of USDC. More details in the following section [CCTP](#cctp-wormhole-integration).
 
 ## Wormhole Services:
 
 <img src="./Images/chat.drawio.png">
 
-- Standard Relayer: utilizamos este relayer en nuestro contrato de chat para poder realizar la comunicacion de mensajes entre chains. More details in the section [Standard Relayer](#standard-relayer).
+- Standard Relayer: We use this relayer in our chat contract to be able to communicate messages between chains. More details in the following section [Standard Relayer](#standard-relayer).
 
-- Circle Relayer: este segundo relayer especializado lo utilizamos debido a la facilidad de poder realizar transferencias crosschain de USDC entre las dinstintas chains que maneja nuestro proyecto. More details in the section [Circle Relayer](#cctp-wormhole-integration).
+- Circle Relayer: We use this second specialized relayer due to the ease of being able to make cross-chain transfers of USDC between the different chains that our project manages. More details in the following section [Circle Relayer](#cctp-wormhole-integration).
   
 # Features:
 
-Ahora vamos a describir las features principales denuestra aplicacion asi como la implementacion tecnica que tienen estos en relacion a las tecnologias de Circle y Wormhole.
+Now we are going to describe the main features of our application as well as the technical implementation that these have in relation to the Circle and Wormhole technologies.
 
 ## Main Account:
 
-Como toda wallet en el mercado primero teniamos que cubir las funciones basicas de la misma. La cual en este caso es poder gestionar los crypto assets del usuario, asi como las funciones de recibirlos o mandarlos. En este caso siendo prioritaria la implementacion de USDC y EURC. Ya que estas al ser stablecoins nos proveen de la capacidad de ahorro y adopcion que buscamos solucionar. [1](#references)
+Like any wallet on the market, we first had to cover its basic functions. In this case, it is being able to manage the user's crypto assets, as well as the functions of receiving or sending them. In this case, the implementation of USDC and EURC is a priority. Since these are stablecoins, they provide us with the savings and adoption capacity that we seek to solve. [1](#references)
 
 <img src="./Images/main1.png" width="32%"> <img src="./Images/main2.png" width="32%"> <img src="./Images/main3.png" width="32%">
 
@@ -56,11 +56,11 @@ All technical implementations for main wallet are included here.
 
 ### Developer Controlled Wallets:
 
-Todos los assets que mantiene esta wallet estan totalmete a disposicion del usuario, sin embargo no las private keys, estas las controlamos mediante la plataforma de Developer Controlled Wallets. Todas las wallets creadas para ser usadas como Main se crean con el prefijo `user_`.
+All assets held by this wallet are fully available to the user, however not the private keys, these are controlled by the Developer Controlled Wallets platform. All wallets created to be used as Main are created with the prefix `user_`.
 
 <img src="./Images/dcwsub.png">
 
-Ademas todas las transacciones que querramos invocar mediante este metodo estan controladas desde nuestra API en [Google Cloud](./Cloud/). Ya que la Main wallet puede realizar transferencias de Native tokens y ERC20 Tokens necesitamos las siguientes 2 funciones para ello.
+In addition, all the transactions that we want to invoke using this method are controlled from our API in [Google Cloud](./Cloud/). Since the Main wallet can perform transfers of Native tokens and ERC20 Tokens we need the following 2 functions for this.
 
 - Transfer Native Token.
 
@@ -105,7 +105,7 @@ All technical implementations for transactions are included here.
 
 ### Smart Contract Platform (Batch Balances):
 
-Parte de la UI/UX de nuetsra wallet depende de poder obtener el balance de multiples tokens al mismo tiempo. Sin embargo realiza la llamada de todos estos contratos al mismo tiempo puede ser tardado, asi que realizamos un contrato que es capaz de realizar una llamada en Batch de todos los ERC20 Tokens que querramos en una sola RPC call. Esto se desplego a cada una de las chains compatibles con la plataforma y el resto mediante Remix.
+Part of our wallet's UI/UX relies on being able to get the balance of multiple tokens at the same time. However, making the call to all of these contracts at the same time can be time-consuming, so we made a contract that is able to make a batch call of all the ERC20 Tokens we want in a single RPC call. This was deployed to each of the chains supported by the platform and the rest via Remix.
 
 <img src="./Images/scp1.png">
 
@@ -174,11 +174,11 @@ All technical implementations for savings protocols are included here.
 
 ### Developer Controlled Wallets:
 
-Todos los assets que mantiene esta wallet estan totalmete a disposicion del usuario, la aplicacion permite cambiar el tiempo de "lock" que tendra los ahorros, hasta que pase este tiempo el usuario no podra disponer de los fondos que se vayan almacenando en esta walet, todas las wallets creadas para ser usadas como Savings se crean con el prefijo `saving_`.
+All the assets that this wallet maintains are completely available to the user, the application allows you to change the "lock" time that the savings will have, until this time has passed the user will not be able to access the funds that are stored in this wallet, all wallets created to be used as Savings are created with the prefix `saving_`.
 
 <img src="./Images/dcw02.png">
 
-En este caso la transaccion para retirar los fondos una vez se ha terminado el periodo de savings funcionan de la misma forma que explicamos anteriormente. [HERE](#developer-controlled-wallets)
+In this case, the transaction to withdraw funds once the savings period has ended works in the same way as explained above. [HERE](#developer-controlled-wallets)
 
 All technical implementations for transactions are included here.
 
@@ -204,21 +204,21 @@ All technical implementations for this feature are included here.
 
 ### Developer Controlled Wallets:
 
-Todos los assets que mantiene esta wallet estan totalmete a disposicion del usuario, sin embargo a diferencia de las wallets anteriores los fondos unicamente son transferidos una vez se realiza el pago con la trajeta fisica ligada a esta cuenta, todas las wallets creadas para ser usadas como Savings se crean con el prefijo `card_`.
+All assets held by this wallet are fully available to the user, however unlike previous wallets the funds are only transferred once payment is made with the physical card linked to this account, all wallets created to be used as Savings are created with the prefix `card_`.
 
 <img src="./Images/dcw03.png">
 
-En este caso la transaccion para retirar los fondos funciona de la misma forma [HERE](#developer-controlled-wallets), sin embargo esta solo se ejecuta si es leida si es ejecutada con la informacion privada de la tarjeta fisica ligada a la tarjeta. 
+In this case the transaction to withdraw funds works in the same way. [HERE](#developer-controlled-wallets), However, this is only executed if it is read or if it is executed with the private information of the physical card linked to the card. 
 
 #### Payment Example:
 
-El comercio puede ejecutar un pago de forma sencilla abriendo la tab de payment. El pago es igual que realizar el cobro en cualquier POS actual, simplemente poniendo la cantidad en dolares, pasando la tarjeta y ya sea el cliente o el comercio seleccionado el token con el que desea pagar.
+The merchant can easily execute a payment by opening the payment tab. The payment is the same as making a payment at any current POS, simply by entering the amount in dollars, swiping the card and either the customer or the merchant selecting the token they wish to pay with.
 
-NOTA: Colocamos las stablecoins como USDC y EURC como primeras opciones siempre que se realiza un pago ya que el fin de proyecto es que estas se utilicen de forma preferencial.
+NOTE: We place stablecoins such as USDC and EURC as the first options whenever a payment is made since the purpose of the project is for these to be used preferentially.
 
 <img src="./Images/pos01.png" width="32%"> <img src="./Images/pos02.png" width="32%"> <img src="./Images/pos03.png" width="32%">
 
-Finalmente una vez seleccionado el token para pagar, podremos ver el estatus en el explorer mainnet, si el hardware lo permite imprimir el recibo para el cliente o regresar al menu principal para realizar otro pago.
+Finally, once the token to pay has been selected, we can see the status in the mainnet explorer, if the hardware allows it, print the receipt for the customer or return to the main menu to make another payment.
 
 <img src="./Images/pos04.png" width="32%"> <img src="./Images/pos05.png" width="32%"> <img src="./Images/pos06.png" width="32%">
 
@@ -230,36 +230,36 @@ All technical implementations for transactions are included here.
 
 ## MultiChainChat:
 
-La ultima pero no menos importante parte de nuestro proyecto fue el desarrollo de un cross-chain chat el cual permite alos usuarios mandar mensajes de forma completamente decentralizada y con la certidumbre de que la comunicacion entre ellos es completamente encriptada y segura. Ademas de la capacidad de poder realizar transferencias de USDC ya sea sobre la misma chain o crosschain (CCTP). Este feature nos permite incrementar la adopcion y uso de crypto ya que al dia de hoy ya existen alternativas para realizar esto en TradFi como puede ser Venmo o WeChat Pay. [4](#references)
+The last but not least important part of our project was the development of a cross-chain chat which allows users to send messages in a completely decentralized way and with the certainty that the communication between them is completely encrypted and secure. In addition to the ability to make USDC transfers either on the same chain or crosschain (CCTP). This feature allows us to increase the adoption and use of crypto since today there are already alternatives to do this in TradFi such as Venmo or WeChat Pay. [4](#references)
 
 <img src="./Images/chat01.png" width="32%"> <img src="./Images/chat0.png" width="32%">
 
-Todo el codigo se desarrollo mediante la herramienta de Foundry.
+All code was developed using the Foundry tool.
 
 [ENVIRONMENT](./multichain-chat/)
 
-Generamos varios scripts que facilitan al usuario desplegar por si mismo toda la infraestructura del chat, estos scripts permiten calcular el costo, desplegar y configurar absolutamente todo.
+We generate several scripts that make it easier for the user to deploy the entire chat infrastructure themselves. These scripts allow you to calculate the cost, deploy and configure absolutely everything.
 
-- Deploy Estimation: Este script nos da el costo que tendra el despliegue de los contratos en cada una de las chains que configures en el archivo [chains.json](./multichain-chat/deploy-config/chains.json).
+- Deploy Estimation: This script gives us the cost that the deployment of the contracts will have in each of the chains that you configure in the file [chains.json](./multichain-chat/deploy-config/chains.json).
   - [CODE](./multichain-chat/script/deployChatEstimation.js)
 
-- Deploy Chat: Este script permite desplegar en cada una de las chains el contrato y a su vez configurarlos de tal forma que puedan intercomunicarse entre si. Este proceso puede ser un poco tardado segun las chains que configures, ya que por cada chain que agregues cada contrato en cada chain tendran que agregarse entre si.
+- Deploy Chat: This script allows you to deploy the contract in each of the chains and at the same time configure them in such a way that they can communicate with each other. This process can be a bit slow depending on the chains you configure, since for each chain you add each contract in each chain will have to be added to each other.
   - [CODE](./multichain-chat/script/deployChat.js)
 
-- Send Message Estimation: Este script nos permite realizar una quote de cual sera el costo de mandar un mensaje de una Chain A a una Chain B. Te recomendamos realizar algunas quotes para asegurarte que los costos son aceptables.
+- Send Message Estimation: This script allows us to make a quote of what the cost will be to send a message from Chain A to Chain B. We recommend making some quotes to ensure that the costs are acceptable.
   - [CODE](./multichain-chat/script/sendMessageEstimation.js)
 
-- Send Message: Este script permite mandar un mensaje desde la wallet que tengas configurada como fee payer a otra address que tu decidas agregar, desde una Chain A a una Chain B.
-  - [CODE](./multichain-chat/script/sendMessage.js)
+- Send Message: This script allows you to send a message from the wallet you have configured as a fee payer to another address you decide to add, from Chain A to Chain B.
+- [CODE](./multichain-chat/script/sendMessage.js)
   
-- Get Messages: Finalmente este script permite recuperar por address todos los mensajes en el chat que se tengan registrados desde o para cierta address en particular.
+- Get Messages: Finally, this script allows you to retrieve by address all messages in the chat that are registered from or for a particular address.
   - [CODE](./multichain-chat/script/getMessages.js)
 
 ### Standard Relayer:
 
-Todos los mensajes que van de una chain a otra utilizan el Standard Relayer para mandar informacion crosschain. Esto esta imlpementado en nuestro MultiChainChat.sol contract en las siguientes funciones.
+All messages going from one chain to another use the Standard Relayer to send cross-chain information. This is implemented in our MultiChainChat.sol contract in the following functions.
 
-- Send Crosschain Message: (Origin Chani)
+- Send Crosschain Message: (Origin Chain)
 
       function sendMessage(
           uint16 targetChain,
@@ -354,7 +354,7 @@ All technical implementations for this contract are included here.
 
 ### CCTP Wormhole Integration:
 
-El poder transferir mensajes desde una chain a otra es primordial para el buen funcionamiento de un cross-chain chat, pero a su vez para que esto fuera un producto viable teniamos que tener la capacidad de mandar a su vez USDC ya que queremos seguir el mismo modelo de negocios de empresas como Venmo o WeChat Pay pero en version web3. Asi que para esto fue necesario utilizar el Circle Relayer de Wormhole, el cual es una version de CCTP que Wormhole ya tiene implementada y es muy facil de usar. Sin embargo para poder utilizar este contrato creamos un contrato de interfaz que nos permite utilizar de forma mas sencilla este contrato.
+Being able to transfer messages from one chain to another is essential for a cross-chain chat to work properly, but for this to be a viable product we had to be able to send USDC as well, since we want to follow the same business model as companies like Venmo or WeChat Pay but in a web3 version. So for this it was necessary to use Wormhole's Circle Relayer, which is a version of CCTP that Wormhole already has implemented and is very easy to use. However, in order to use this contract we created an interface contract that allows us to use this contract more easily.
 
     interface ICircleRelayer {
     event SwapExecuted(
@@ -384,15 +384,15 @@ All technical implementations for this interface are included here.
 
 ### Smart Contract Platform (Chat Contracts):
 
-Los contratos deplegados con el Enviroment de Foundry los agrupamos en nuestra plataforma de Circle con el fin de tener un mejor control y visualizacion de los contratos necesarios para el proyecto
+We group the contracts deployed with the Foundry Environment on our Circle platform in order to have better control and visualization of the contracts necessary for the project.
 
 <img src="./Images/scp2.png">
 
 ### Developer Controlled Wallets:
 
-A diferencia de solo transferir assets, el interactuar con los smart contracts de MultiChainChat y Circle Relayer requirieron algunas consideraciones adicionales a la hora de usar las Developer Controlled Wallets. Vamos a explicar las funciones mas importantes utilizadas para que esto pudiera realizarse correctamente, sin embargo todo el codigo estara disponible al final de esta seccion.
+Unlike just transferring assets, interacting with MultiChainChat and Circle Relayer smart contracts required some additional considerations when using Developer Controlled Wallets. We will explain the most important functions used to make this possible, however all the code will be available at the end of this section.
 
-- Send Message Cross-chain with Programmable Wallets: Este tipo de transaccion puede ser realizada en solo uns transaccion. Esta es ejecutada mediante el Javascript SDK de circle.
+- Send Message Cross-chain with Programmable Wallets: This type of transaction can be done in just one transaction. It is executed using circle's Javascript SDK.
 
       const data = chatInterface.encodeFunctionData('sendMessage', [
         this.context.value.toChain,
@@ -420,7 +420,7 @@ A diferencia de solo transferir assets, el interactuar con los smart contracts d
           },
       });
 
-- Send CCTP transfer: Aunado al mensaje cross-chain que es mandado en el chat, el realizar una transferencia desde el Circle Relayer involucra 2 pasos, el cual es realizar un approve de la cantidad que se va a transferir desde la Developer Programmable Wallet y posteriormente ejecutar la transaccion para realizar el transfer con el relayer.
+- Send CCTP transfer: In addition to the cross-chain message that is sent in the chat, making a transfer from the Circle Relayer involves 2 steps, which is to approve the amount to be transferred from the Developer Programmable Wallet and then execute the transaction to make the transfer with the relayer.
 
       let interface = new ethers.utils.Interface(abiERC20);
       let transaction = interface.encodeFunctionData("approve", [
@@ -476,7 +476,7 @@ All technical implementations for this interface are included here.
 
 ### UI/UX:
 
-Aunque este proceso puede parecer algo complicado, cara al usuario es tan sencillo como elegir la chain origen, la chain objectivo, la cantidad a mandar y presionar el boton de mandar. Toda esta abtraccion es gracias a Wormhole y Circle.
+Although this process may seem somewhat complicated, for the user it is as simple as choosing the source chain, the target chain, the amount to send and pressing the send button. All this abstraction is thanks to Wormhole and Circle.
 
 <img src="./Images/chat03.png" width="32%"> <img src="./Images/chat04.png" width="32%"> <img src="./Images/chat05.png" width="32%">
 
