@@ -192,7 +192,7 @@ Part of people's daily adoption of crypto is being able to use it in the same wa
 
 ### Contactless Payment:
 
-Payment cards are not just a traditional NFC chip, in fact they are more like small computers with installed programs, which run in milliseconds at the time the chip is being scanned.[3](#references).
+Payment cards are not just a traditional NFC chip, in fact they are more like small computers with installed programs, which run in milliseconds at the time the chip is being scanned. [3](#references)
 
 <img src="./Images/emv1.jpg" width="100%">
 
