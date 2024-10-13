@@ -250,7 +250,7 @@ We generate several scripts that make it easier for the user to deploy the entir
   - [CODE](./multichain-chat/script/sendMessageEstimation.js)
 
 - Send Message: This script allows you to send a message from the wallet you have configured as a fee payer to another address you decide to add, from Chain A to Chain B.
-- [CODE](./multichain-chat/script/sendMessage.js)
+  - [CODE](./multichain-chat/script/sendMessage.js)
   
 - Get Messages: Finally, this script allows you to retrieve by address all messages in the chat that are registered from or for a particular address.
   - [CODE](./multichain-chat/script/getMessages.js)
