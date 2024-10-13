@@ -18,7 +18,7 @@ VIDEODEMO: [VIDEO](pending...)
 
 <img src="./Images/whitehole.drawio.png">
 
-- Programmable Wallets: Para mejorar la experiencia del usuario y la seguridad en la gestión de sus crypto assets, decidimos implementar las Developer Controlled Wallets, permitiendo a los usuarios manejar sus assets de forma segura y sin el riesgo de perder sus private keys.
+- Programmable Wallets: To improve the user experience and security in the management of their crypto assets, we decided to implement Developer Controlled Wallets, allowing users to manage their assets safely and without the risk of losing their private keys.
 
   - Main Account: Within the schematics you can see that we have our main wallet, which is a [Developer Controlled Wallet](https://developers.circle.com/w3s/developer-controlled-wallet-quickstart), you won’t have to worry about remembering your mnemonic because Circle protects your wallet. More details in the section [Main Account](#assets-management).
 
