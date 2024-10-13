@@ -64,21 +64,21 @@ In addition, all the transactions that we want to invoke using this method are c
 
 - Transfer Native Token.
 
-    const transaction = {
-        amount: [amount],
-        destinationAddress,
-        walletId,
-        blockchain: blockchains[req.body.chain],
-    };
-    let response = await circleDeveloperSdk.createTransaction({
-        ...transaction,
-        fee: {
-        type: "level",
-        config: {
-            feeLevel: "MEDIUM",
-        },
-        },
-    });
+      const transaction = {
+          amount: [amount],
+          destinationAddress,
+          walletId,
+          blockchain: blockchains[req.body.chain],
+      };
+      let response = await circleDeveloperSdk.createTransaction({
+          ...transaction,
+          fee: {
+          type: "level",
+          config: {
+              feeLevel: "MEDIUM",
+          },
+          },
+      });
 
 - Transfer ERC20 Tokens:
 
