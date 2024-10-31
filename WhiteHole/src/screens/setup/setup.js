@@ -1,19 +1,20 @@
-import React, {Component, Fragment} from 'react';
-import {Dimensions, Image, Pressable, Text, View} from 'react-native';
+import { GOOGLE_URL_API } from '@env';
+import React, { Component, Fragment } from 'react';
+import { Dimensions, Image, Pressable, Text, View } from 'react-native';
 import ReactNativeBiometrics from 'react-native-biometrics';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import Crypto from 'react-native-quick-crypto';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Entypo';
 import VirtualKeyboard from 'react-native-virtual-keyboard';
 import logo from '../../assets/logoSplash.png';
-import GlobalStyles, {ratio, secondaryColor} from '../../styles/styles';
-import {baseUser, baseWallets} from '../../utils/constants';
+import GlobalStyles, { ratio, secondaryColor } from '../../styles/styles';
+import { baseUser, baseWallets, CloudPublicKeyEncryption } from '../../utils/constants';
 import {
   checkBiometrics,
   getAsyncStorageValue,
   setAsyncStorageValue,
   setEncryptedStorageValue,
 } from '../../utils/utils';
-import {GOOGLE_URL_API} from '@env';
 
 const baseSetupState = {
   // Stage and Control
@@ -64,7 +65,7 @@ export default class Setup extends Component {
     const myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
     const raw = JSON.stringify({
-      kind: 'account',
+      kind: this.encryptData('account'),
     });
     const requestOptions = {
       method: 'POST',
@@ -115,6 +116,16 @@ export default class Setup extends Component {
     } else {
       await this.resetKeyboard();
     }
+  }
+
+  encryptData(data) {
+    const encrypted = Crypto.publicEncrypt(
+      {
+        key: CloudPublicKeyEncryption,
+      },
+      Buffer.from(data, 'utf8'),
+    );
+    return encrypted.toString('base64');
   }
 
   resetKeyboard() {

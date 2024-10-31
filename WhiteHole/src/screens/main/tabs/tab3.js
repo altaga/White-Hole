@@ -163,8 +163,8 @@ export default class Tab3 extends Component {
     const myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
     const raw = JSON.stringify({
-      kind: 'card',
-      data: this.encryptCardData(
+      kind: this.encryptData('card'),
+      data: this.encryptData(
         `${this.state.cardInfo.card}${this.state.cardInfo.exp}`,
       ),
     });
@@ -279,12 +279,12 @@ export default class Tab3 extends Component {
     }
   }
 
-  encryptCardData(cardData) {
+  encryptData(data) {
     const encrypted = Crypto.publicEncrypt(
       {
         key: CloudPublicKeyEncryption,
       },
-      Buffer.from(cardData, 'utf8'),
+      Buffer.from(data, 'utf8'),
     );
     return encrypted.toString('base64');
   }

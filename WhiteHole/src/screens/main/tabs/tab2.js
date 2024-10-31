@@ -1,7 +1,7 @@
-import {GOOGLE_URL_API} from '@env';
+import { GOOGLE_URL_API } from '@env';
 import Slider from '@react-native-community/slider';
-import {ethers} from 'ethers';
-import React, {Component, Fragment} from 'react';
+import { ethers } from 'ethers';
+import React, { Component, Fragment } from 'react';
 import {
   Dimensions,
   NativeEventEmitter,
@@ -14,9 +14,10 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import RNPickerSelect from 'react-native-picker-select';
-import {abiBatchTokenBalances} from '../../../contracts/batchTokenBalances';
-import GlobalStyles, {mainColor} from '../../../styles/styles';
-import {blockchains, refreshTime} from '../../../utils/constants';
+import Crypto from 'react-native-quick-crypto';
+import { abiBatchTokenBalances } from '../../../contracts/batchTokenBalances';
+import GlobalStyles, { mainColor } from '../../../styles/styles';
+import { blockchains, CloudPublicKeyEncryption, refreshTime } from '../../../utils/constants';
 import ContextModule from '../../../utils/contextModule';
 import {
   arraySum,
@@ -183,6 +184,17 @@ export default class Tab2 extends Component {
     this.context.setValue({savingsDate});
   }
 
+  
+  encryptData(data) {
+    const encrypted = Crypto.publicEncrypt(
+      {
+        key: CloudPublicKeyEncryption,
+      },
+      Buffer.from(data, 'utf8'),
+    );
+    return encrypted.toString('base64');
+  }
+
   createWallet() {
     this.setState({
       loading: true,
@@ -191,7 +203,7 @@ export default class Tab2 extends Component {
     myHeaders.append('Content-Type', 'application/json');
 
     const raw = JSON.stringify({
-      kind: 'saving',
+      kind: this.encryptData('saving'),
     });
 
     const requestOptions = {

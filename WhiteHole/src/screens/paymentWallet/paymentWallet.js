@@ -146,12 +146,12 @@ class PaymentWallet extends Component {
     });
   }
 
-  encryptCardData(cardData) {
+  encryptData(data) {
     const encrypted = Crypto.publicEncrypt(
       {
         key: CloudPublicKeyEncryption,
       },
-      Buffer.from(cardData, 'utf8'),
+      Buffer.from(data, 'utf8'),
     );
     return encrypted.toString('base64');
   }
@@ -171,7 +171,7 @@ class PaymentWallet extends Component {
     const myHeaders = new Headers();
     myHeaders.append('Content-Type', 'application/json');
     const raw = JSON.stringify({
-      user: this.encryptCardData(
+      user: this.encryptData(
         `${this.state.cardInfo.card}${this.state.cardInfo.exp}`,
       ),
       card: true,
@@ -210,7 +210,7 @@ class PaymentWallet extends Component {
       const myHeaders = new Headers();
       myHeaders.append('Content-Type', 'application/json');
       const raw = JSON.stringify({
-        data: this.encryptCardData(
+        data: this.encryptData(
           `${this.state.cardInfo.card}${this.state.cardInfo.exp}`,
         ),
       });

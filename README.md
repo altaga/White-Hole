@@ -10,7 +10,7 @@ WALLET CODE: [CODE](./WhiteHole/)
 
 PLAYSTORE LINK: [LINK](https://play.google.com/store/apps/details?id=com.altaga.whitehole)
 
-VIDEODEMO: [VIDEO](pending...)
+VIDEODEMO: [VIDEO](https://www.youtube.com/watch?v=qL7i601yviI&feature=youtu.be)
 
 # System Diagram:
 
